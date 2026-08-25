@@ -50,10 +50,18 @@ jobs:
             echo "Release tags must use v<version>, for example v0.1.0; got ${TAG_NAME}." >&2
             exit 1
           fi
+          set +e
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/usr \
-            -DSUISHI_VERSION="${VERSION}"
+            -DSUISHI_VERSION="${VERSION}" 2>&1 | tee configure.log
+          configure_status=${PIPESTATUS[0]}
+          set -e
+          if [[ ${configure_status} -ne 0 ]]; then
+            message="$(tail --lines=20 configure.log | tr '\n' ' ')"
+            echo "::error title=CMake configuration failed::${message}"
+            exit "${configure_status}"
+          fi
 
       - name: Build
         run: cmake --build build --parallel
