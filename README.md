@@ -91,6 +91,23 @@ data/workdays/2027.json
 
 这可用于本地修订或在正式软件包更新前测试新年份数据，且不需要修改插件代码。
 
+## 发布 DEB 包
+
+仓库包含 GitHub Actions 工作流 `.github/workflows/release-deb.yml`。向远程推送符合以下格式的标签会自动触发构建：
+
+```bash
+git tag -a v0.1.0 -m "岁时 0.1.0"
+git push origin v0.1.0
+```
+
+工作流在 Ubuntu 24.04 上安装 Qt 6 和 KDE Frameworks 6 构建依赖，编译并运行测试，再通过 CPack 生成 DEB 包。产物名称类似：
+
+```text
+suishi_0.1.0_amd64.deb
+```
+
+生成的 DEB 包与 `SHA256SUMS` 会同时作为 Actions artifact 和 GitHub Release 附件上传。标签版本必须是数字版本号，例如 `v1`、`v1.2`、`v1.2.3` 或 `v1.2.3.4`。
+
 ## 项目结构
 
 ```text

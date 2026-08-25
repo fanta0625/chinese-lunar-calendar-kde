@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(lunarcalendarplugin VERSION 0.1.0 LANGUAGES CXX)
+set(SUISHI_VERSION "0.1.0" CACHE STRING "岁时发布版本")
+
+project(suishi VERSION ${SUISHI_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -55,3 +57,16 @@ if(BUILD_TESTING)
     )
     add_test(NAME lunarcalendarcore_test COMMAND lunarcalendarcore_test)
 endif()
+
+set(CPACK_GENERATOR "DEB")
+set(CPACK_PACKAGE_NAME "suishi")
+set(CPACK_PACKAGE_VENDOR "Loongson")
+set(CPACK_PACKAGE_CONTACT "Loongson")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Chinese lunar calendar extension for KDE Plasma")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "plasma-workspace (>= 6.0)")
+
+include(CPack)

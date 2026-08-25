@@ -1,0 +1,84 @@
+name: Release Debian Package
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  deb:
+    name: Build and publish DEB
+    runs-on: ubuntu-24.04
+    env:
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            cmake \
+            dpkg-dev \
+            extra-cmake-modules \
+            libkf6coreaddons-dev \
+            libkf6declarative-dev \
+            qt6-base-dev \
+            qt6-base-dev-tools
+
+      - name: Configure
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG_NAME#v}"
+          if ! [[ "${VERSION}" =~ ^[0-9]+(\.[0-9]+){0,3}$ ]]; then
+            echo "Release tags must use v<version>, for example v0.1.0; got ${TAG_NAME}." >&2
+            exit 1
+          fi
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DSUISHI_VERSION="${VERSION}"
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package
+        run: |
+          mkdir --parents dist
+          cpack --config build/CPackConfig.cmake -B dist
+          sha256sum dist/*.deb > dist/SHA256SUMS
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: suishi-deb-${{ github.ref_name }}
+          path: |
+            dist/*.deb
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            gh release upload "${TAG_NAME}" dist/*.deb dist/SHA256SUMS --clobber
+          else
+            gh release create "${TAG_NAME}" dist/*.deb dist/SHA256SUMS \
+              --verify-tag \
+              --generate-notes \
+              --title "岁时 ${TAG_NAME}"
+          fi
