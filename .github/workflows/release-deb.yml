@@ -12,27 +12,34 @@ jobs:
   deb:
     name: Build and publish DEB
     runs-on: ubuntu-24.04
+    container:
+      image: debian:trixie
+    defaults:
+      run:
+        shell: bash
     env:
       DEBIAN_FRONTEND: noninteractive
 
     steps:
-      - name: Check out the release tag
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Install build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends \
+          apt-get update
+          apt-get install --yes --no-install-recommends \
+            ca-certificates \
             build-essential \
             cmake \
             dpkg-dev \
             extra-cmake-modules \
+            git \
             libkf6coreaddons-dev \
             libkf6declarative-dev \
             qt6-base-dev \
             qt6-base-dev-tools
+
+      - name: Check out the release tag
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Configure
         env:
@@ -70,15 +77,10 @@ jobs:
           if-no-files-found: error
 
       - name: Create or update GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ github.ref_name }}
-        run: |
-          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
-            gh release upload "${TAG_NAME}" dist/*.deb dist/SHA256SUMS --clobber
-          else
-            gh release create "${TAG_NAME}" dist/*.deb dist/SHA256SUMS \
-              --verify-tag \
-              --generate-notes \
-              --title "岁时 ${TAG_NAME}"
-          fi
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 岁时 ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/*.deb
+            dist/SHA256SUMS

@@ -100,7 +100,7 @@ git tag -a v0.1.0 -m "岁时 0.1.0"
 git push origin v0.1.0
 ```
 
-工作流在 Ubuntu 24.04 上安装 Qt 6 和 KDE Frameworks 6 构建依赖，编译并运行测试，再通过 CPack 生成 DEB 包。产物名称类似：
+工作流在 GitHub 的 Ubuntu runner 上启动 Debian Trixie 容器，安装 Qt 6 与 KDE Frameworks 6 构建依赖，编译并运行测试，再通过 CPack 生成 DEB 包。产物名称类似：
 
 ```text
 suishi_0.1.0_amd64.deb
