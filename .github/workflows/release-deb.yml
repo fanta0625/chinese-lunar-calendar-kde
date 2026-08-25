@@ -65,7 +65,16 @@ jobs:
           fi
 
       - name: Build
-        run: cmake --build build --parallel
+        run: |
+          set +e
+          cmake --build build --parallel 2>&1 | tee build.log
+          build_status=${PIPESTATUS[0]}
+          set -e
+          if [[ ${build_status} -ne 0 ]]; then
+            message="$(tail --lines=20 build.log | tr '\n' ' ')"
+            echo "::error title=CMake build failed::${message}"
+            exit "${build_status}"
+          fi
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
