@@ -17,7 +17,10 @@ include(KDECompilerSettings NO_POLICY_SCOPE)
 include(KDEInstallDirs)
 
 find_package(Qt6 REQUIRED COMPONENTS Core)
-find_package(KF6 REQUIRED COMPONENTS CalendarEvents CoreAddons)
+find_package(KF6 REQUIRED COMPONENTS CoreAddons)
+# Debian packages CalendarEvents within KF6Declarative rather than as a
+# standalone KF6CalendarEvents CMake package.
+find_package(KF6Declarative REQUIRED)
 
 add_library(lunarcalendarcore STATIC
     src/lunarconverter.cpp
