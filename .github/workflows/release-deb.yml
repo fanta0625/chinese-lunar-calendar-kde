@@ -77,7 +77,16 @@ jobs:
           fi
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: |
+          set +e
+          ctest --test-dir build --output-on-failure 2>&1 | tee test.log
+          test_status=${PIPESTATUS[0]}
+          set -e
+          if [[ ${test_status} -ne 0 ]]; then
+            message="$(tail --lines=20 test.log | tr '\n' ' ')"
+            echo "::error title=CTest failed::${message}"
+            exit "${test_status}"
+          fi
 
       - name: Package
         run: |
