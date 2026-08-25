@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_AUTOMOC ON)
 
 find_package(ECM 6.0 REQUIRED NO_MODULE)
 set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
@@ -30,6 +31,9 @@ add_library(lunarcalendarcore STATIC
 
 target_include_directories(lunarcalendarcore PUBLIC src)
 target_link_libraries(lunarcalendarcore PUBLIC Qt6::Core)
+
+# Plasma loads calendar event extensions as shared libraries.
+set(BUILD_SHARED_LIBS ON)
 
 kcoreaddons_add_plugin(locallunarcalendar
     SOURCES
