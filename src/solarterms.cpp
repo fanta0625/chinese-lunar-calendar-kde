@@ -24,12 +24,12 @@ QString SolarTerms::labelForDate(const QDate &date)
         483532, 504758,
     };
     static const std::array<QString, 24> names = {
-        QStringLiteral("立春"), QStringLiteral("雨水"), QStringLiteral("惊蛰"), QStringLiteral("春分"),
-        QStringLiteral("清明"), QStringLiteral("谷雨"), QStringLiteral("立夏"), QStringLiteral("小满"),
-        QStringLiteral("芒种"), QStringLiteral("夏至"), QStringLiteral("小暑"), QStringLiteral("大暑"),
-        QStringLiteral("立秋"), QStringLiteral("处暑"), QStringLiteral("白露"), QStringLiteral("秋分"),
-        QStringLiteral("寒露"), QStringLiteral("霜降"), QStringLiteral("立冬"), QStringLiteral("小雪"),
-        QStringLiteral("大雪"), QStringLiteral("冬至"), QStringLiteral("小寒"), QStringLiteral("大寒"),
+        QStringLiteral("小寒"), QStringLiteral("大寒"), QStringLiteral("立春"), QStringLiteral("雨水"),
+        QStringLiteral("惊蛰"), QStringLiteral("春分"), QStringLiteral("清明"), QStringLiteral("谷雨"),
+        QStringLiteral("立夏"), QStringLiteral("小满"), QStringLiteral("芒种"), QStringLiteral("夏至"),
+        QStringLiteral("小暑"), QStringLiteral("大暑"), QStringLiteral("立秋"), QStringLiteral("处暑"),
+        QStringLiteral("白露"), QStringLiteral("秋分"), QStringLiteral("寒露"), QStringLiteral("霜降"),
+        QStringLiteral("立冬"), QStringLiteral("小雪"), QStringLiteral("大雪"), QStringLiteral("冬至"),
     };
 
     constexpr double tropicalYearMilliseconds = 31556925974.7;
