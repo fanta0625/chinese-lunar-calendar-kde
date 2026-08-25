@@ -1,0 +1,57 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(lunarcalendarplugin VERSION 0.1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+find_package(ECM 6.0 REQUIRED NO_MODULE)
+set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
+
+include(CTest)
+include(KDECompilerSettings NO_POLICY_SCOPE)
+include(KDEInstallDirs)
+
+find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(KF6 REQUIRED COMPONENTS CalendarEvents CoreAddons)
+
+add_library(lunarcalendarcore STATIC
+    src/lunarconverter.cpp
+    src/solarterms.cpp
+    src/workdaydata.cpp
+)
+
+target_include_directories(lunarcalendarcore PUBLIC src)
+target_link_libraries(lunarcalendarcore PUBLIC Qt6::Core)
+
+kcoreaddons_add_plugin(locallunarcalendar
+    SOURCES
+        src/lunarcalendarplugin.cpp
+        src/lunarcalendarplugin.h
+    INSTALL_NAMESPACE "plasmacalendarplugins"
+)
+
+target_link_libraries(locallunarcalendar PRIVATE
+    KF6::CalendarEvents
+    KF6::CoreAddons
+    lunarcalendarcore
+)
+
+install(DIRECTORY data/
+    DESTINATION ${KDE_INSTALL_DATADIR}/lunarcalendar
+)
+
+if(BUILD_TESTING)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+
+    add_executable(lunarcalendarcore_test
+        tests/lunarconvertertest.cpp
+    )
+    target_link_libraries(lunarcalendarcore_test PRIVATE
+        Qt6::Test
+        lunarcalendarcore
+    )
+    add_test(NAME lunarcalendarcore_test COMMAND lunarcalendarcore_test)
+endif()

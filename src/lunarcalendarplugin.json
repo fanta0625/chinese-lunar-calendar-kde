@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Id": "cn.loongson.suishi",
+        "Name": "Suishi",
+        "Name[zh_CN]": "岁时",
+        "Description": "Show local Chinese lunar dates and China workday adjustments below Gregorian dates.",
+        "Description[zh_CN]": "在阳历日期下方显示本地农历、中国节气与调休信息。",
+        "Icon": "office-calendar"
+    }
+}
