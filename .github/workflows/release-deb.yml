@@ -31,6 +31,7 @@ jobs:
             dpkg-dev \
             extra-cmake-modules \
             git \
+            libkf6config-dev \
             libkf6coreaddons-dev \
             libkf6declarative-dev \
             qt6-base-dev \
