@@ -17,7 +17,7 @@ include(KDECompilerSettings NO_POLICY_SCOPE)
 include(KDEInstallDirs)
 
 find_package(Qt6 REQUIRED COMPONENTS Core)
-find_package(KF6 REQUIRED COMPONENTS CalendarEvents CoreAddons)
+find_package(KF6 REQUIRED COMPONENTS CoreAddons Declarative)
 
 add_library(lunarcalendarcore STATIC
     src/lunarconverter.cpp
