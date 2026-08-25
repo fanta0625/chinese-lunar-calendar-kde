@@ -30,6 +30,7 @@ jobs:
             cmake \
             dpkg-dev \
             extra-cmake-modules \
+            file \
             git \
             libkf6config-dev \
             libkf6coreaddons-dev \
