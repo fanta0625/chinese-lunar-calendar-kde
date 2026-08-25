@@ -91,7 +91,15 @@ jobs:
       - name: Package
         run: |
           mkdir --parents dist
-          cpack --config build/CPackConfig.cmake -B dist
+          set +e
+          cpack --config build/CPackConfig.cmake -B dist 2>&1 | tee package.log
+          package_status=${PIPESTATUS[0]}
+          set -e
+          if [[ ${package_status} -ne 0 ]]; then
+            message="$(tail --lines=20 package.log | tr '\n' ' ')"
+            echo "::error title=CPack failed::${message}"
+            exit "${package_status}"
+          fi
           sha256sum dist/*.deb > dist/SHA256SUMS
 
       - name: Upload workflow artifacts
