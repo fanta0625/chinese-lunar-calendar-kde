@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Suishi Post-Install Hint
+Name[zh_CN]=岁时 安装提示
+Comment=One-time hint for enabling the Suishi lunar calendar plugin
+Comment[zh_CN]=岁时农历日历插件的一次性启用提示
+Exec=@KDE_INSTALL_FULL_LIBEXECDIR@/suishi-postinstall-hint
+Icon=office-calendar
+OnlyShowIn=KDE;
+NoDisplay=true
+X-KDE-autostart-phase=1

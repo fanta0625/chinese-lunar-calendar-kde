@@ -1,6 +1,5 @@
 {
     "KPlugin": {
-        "Id": "cn.loongson.suishi",
         "Name": "Suishi",
         "Name[zh_CN]": "岁时",
         "Description": "Show local Chinese lunar dates and China workday adjustments below Gregorian dates.",

@@ -51,8 +51,26 @@ target_link_libraries(locallunarcalendar PRIVATE
     lunarcalendarcore
 )
 
+# Match upstream plasma-workspace convention: calendar plugin files carry no
+# "lib" prefix, and the plugin id is derived from the file name.
+set_target_properties(locallunarcalendar PROPERTIES PREFIX "")
+
 install(DIRECTORY data/
     DESTINATION ${KDE_INSTALL_DATADIR}/lunarcalendar
+)
+
+# One-time first-login hint with one-click enable. The desktop file is
+# configured to point at the installed script in libexec.
+configure_file(
+    postinstall/suishi-postinstall-hint.desktop.in
+    ${CMAKE_CURRENT_BINARY_DIR}/suishi-postinstall-hint.desktop
+    @ONLY
+)
+install(PROGRAMS postinstall/suishi-postinstall-hint
+    DESTINATION ${KDE_INSTALL_LIBEXECDIR}
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/suishi-postinstall-hint.desktop
+    DESTINATION ${KDE_INSTALL_SYSCONFDIR}/xdg/autostart
 )
 
 if(BUILD_TESTING)
@@ -77,6 +95,6 @@ set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
 set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "plasma-workspace (>= 6.0)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "plasma-workspace (>= 6.0), python3, libnotify-bin")
 
 include(CPack)

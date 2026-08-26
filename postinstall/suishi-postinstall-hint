@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+#
+# SPDX-FileCopyrightText: 2026
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# 岁时（Suishi）安装后一次性提示。
+#
+# 由 /etc/xdg/autostart/suishi-postinstall-hint.desktop 在安装后的首次
+# 登录时执行一次：弹出一条 Plasma 通知，用户点击“立即启用”后自动把插件
+# 写入数字时钟的 enabledCalendarPlugins 配置并重启 plasmashell。
+# 无论用户是否点击，提示只显示一次（以 ~/.config/suishi/postinstall-hint-shown
+# 为标记），避免每次登录都打扰。
+
+import re
+import subprocess
+from pathlib import Path
+
+PLUGIN_ID = "locallunarcalendar"
+KEY = "enabledCalendarPlugins"
+
+CONFIG_PATH = Path.home() / ".config" / "plasma-org.kde.plasma.desktop-appletsrc"
+FLAG_DIR = Path.home() / ".config" / "suishi"
+FLAG_PATH = FLAG_DIR / "postinstall-hint-shown"
+
+
+def notify(summary, body, actions=None, timeout=60000):
+    cmd = [
+        "notify-send",
+        "--app-name=岁时",
+        "--icon=office-calendar",
+        "--expire-time",
+        str(timeout),
+    ]
+    for key, label in (actions or {}).items():
+        cmd += ["--action", "{}={}".format(key, label)]
+    cmd += [summary, body]
+    return subprocess.run(cmd, capture_output=True, text=True)
+
+
+def read_lines():
+    if not CONFIG_PATH.exists():
+        return []
+    return CONFIG_PATH.read_text(encoding="utf-8").splitlines()
+
+
+def digital_clock_bases(lines):
+    """数字时钟小部件配置组的基名，如 Containments][891][Applets][909。"""
+    bases = []
+    current = None
+    for line in lines:
+        match = re.match(r"^\[(Containments\]\[\d+\]\[Applets\]\[\d+)\]$", line)
+        if match:
+            current = match.group(1)
+        elif line.startswith("["):
+            current = None
+        elif current and line == "plugin=org.kde.plasma.digitalclock":
+            bases.append(current)
+    return bases
+
+
+def enabled_value_line(lines, base):
+    """返回 base 的 [Configuration][Appearance] 段中 KEY 所在行，不存在则返回 None。"""
+    in_section = False
+    for line in lines:
+        if line == "[{}][Configuration][Appearance]".format(base):
+            in_section = True
+        elif line.startswith("["):
+            in_section = False
+        elif in_section and line.startswith(KEY + "="):
+            return line
+    return None
+
+
+def plugin_enabled(lines, base):
+    line = enabled_value_line(lines, base)
+    if line is None:
+        return False
+    value = line.split("=", 1)[1]
+    return PLUGIN_ID in [v.strip() for v in value.split(",") if v.strip()]
+
+
+def already_enabled():
+    lines = read_lines()
+    bases = digital_clock_bases(lines)
+    return bool(bases) and all(plugin_enabled(lines, base) for base in bases)
+
+
+def enable_in_config(lines, bases):
+    """把 PLUGIN_ID 写入每个数字时钟的配置。返回是否修改了文件。"""
+    changed = False
+    for base in bases:
+        line = enabled_value_line(lines, base)
+        if line is None:
+            lines.append("")
+            lines.append("[{}][Configuration][Appearance]".format(base))
+            lines.append("{}={}".format(KEY, PLUGIN_ID))
+            changed = True
+        else:
+            value = line.split("=", 1)[1]
+            ids = [v.strip() for v in value.split(",") if v.strip()]
+            if PLUGIN_ID not in ids:
+                ids.append(PLUGIN_ID)
+                lines[lines.index(line)] = "{}={}".format(KEY, ",".join(ids))
+                changed = True
+    if changed:
+        CONFIG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return changed
+
+
+def stop_plasmashell():
+    """停止 plasmashell，避免它在我们改配置后把内存中的旧配置写回。"""
+    if subprocess.run(
+        ["systemctl", "--user", "stop", "plasma-plasmashell.service"],
+        capture_output=True,
+    ).returncode == 0:
+        return "systemd"
+    subprocess.run(["kquitapp6", "plasmashell"], capture_output=True)
+    return "manual"
+
+
+def start_plasmashell(how):
+    if how == "systemd":
+        subprocess.run(
+            ["systemctl", "--user", "start", "plasma-plasmashell.service"],
+            capture_output=True,
+        )
+    else:
+        subprocess.Popen(
+            ["plasmashell", "--replace"],
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+
+def main():
+    if FLAG_PATH.exists():
+        return
+
+    # 已启用则静默跳过，不打扰用户。
+    if already_enabled():
+        FLAG_DIR.mkdir(parents=True, exist_ok=True)
+        FLAG_PATH.touch()
+        return
+
+    result = notify(
+        "岁时：农历日历插件已安装",
+        "点击“立即启用”即可在系统日历中显示农历；\n"
+        "也可以稍后在 数字时钟设置 → 日历 中勾选“岁时”。",
+        actions={"enable": "立即启用"},
+    )
+
+    # 提示只显示一次，无论用户是否点击。
+    FLAG_DIR.mkdir(parents=True, exist_ok=True)
+    FLAG_PATH.touch()
+
+    if result.returncode == 0 and result.stdout.strip() == "enable":
+        lines = read_lines()
+        bases = digital_clock_bases(lines)
+        if not bases:
+            notify(
+                "岁时：未找到数字时钟",
+                "面板上没有数字时钟小部件，请在添加后再手动启用“岁时”。",
+                timeout=10000,
+            )
+            return
+        how = stop_plasmashell()
+        enable_in_config(lines, bases)
+        start_plasmashell(how)
+        notify(
+            "岁时：已启用",
+            "系统日历现在会显示农历、节气与调休信息。",
+            timeout=10000,
+        )
+
+
+if __name__ == "__main__":
+    main()

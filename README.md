@@ -2,7 +2,7 @@
 
 岁时是一个 KDE Plasma 6 系统日历扩展。它不创建第二个日历窗口，而是在右下角系统“数字时钟”的既有月历中，为每个阳历日期显示本地农历信息。
 
-插件 ID：`cn.loongson.suishi`
+插件 ID：`locallunarcalendar`（由插件文件名派生，即安装后的 `locallunarcalendar.so`）
 
 ## 功能
 
@@ -67,11 +67,14 @@ sudo cmake --install build
 安装完成后重启 Plasma Shell：
 
 ```bash
-kquitapp6 plasmashell
-kstart6 plasmashell
+systemctl --user restart plasma-plasmashell.service
 ```
 
-随后右键系统右下角的“数字时钟”，依次打开“配置数字时钟”与“日历”，启用“岁时”。如果系统的“其他历法”插件已设为中国农历，应关闭它，避免两个插件同时向日期格提供农历副标题。
+随后右键系统右下角的“数字时钟”，依次打开“配置数字时钟”与“日历”，勾选“岁时”。该步骤会把插件 ID 写入数字时钟小部件的 `enabledCalendarPlugins` 配置项；如果跳过此步骤，插件不会向日历提供任何数据。如果系统的“其他历法”插件已设为中国农历，应关闭它，避免两个插件同时向日期格提供农历副标题。
+
+> **打包注意**：Plasma 日历插件是“按需启用”的，`enabledCalendarPlugins` 的默认值为空，因此仅安装软件包不会自动启用插件。已在 Plasma 6.3.6（Loongnix）上验证：元数据中的 `"EnabledByDefault": true` 不会改变这一行为，plasmashell 只加载配置项中显式列出的插件。
+>
+> 为改善开箱体验，软件包含“首次登录提示”机制：安装后的第一次登录会弹出一条 Plasma 通知，带“立即启用”按钮，点击后自动写入配置并重启 plasmashell（由 `postinstall/` 下的脚本与 XDG autostart 桌面文件实现，依赖 `python3` 与 `libnotify-bin`，已写入 DEB 依赖）。提示只显示一次；用户也可以随时按上文步骤在界面中启用或关闭。
 
 ## 更新调休数据
 
@@ -118,6 +121,9 @@ src/
   workdaydata.*           按年份读取本地调休数据
 data/workdays/
   2026.json               2026 年法定假日与补班数据
+postinstall/
+  suishi-postinstall-hint            首次登录一次性提示脚本（一键启用）
+  suishi-postinstall-hint.desktop.in  XDG autostart 入口模板
 tests/
   lunarconvertertest.cpp  农历、节气与调休加载测试
 ```
