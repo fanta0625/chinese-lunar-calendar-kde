@@ -3,6 +3,7 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+#include "eventcolors.h"
 #include "lunarconverter.h"
 #include "solarterms.h"
 #include "workdaydata.h"
@@ -22,6 +23,7 @@ private Q_SLOTS:
     void identifiesFestivals();
     void identifiesSolarTerms();
     void loadsLocalWorkdayData();
+    void loadsEventColorsWithOverride();
     void rejectsUnsupportedDates();
 };
 
@@ -84,6 +86,25 @@ void LunarConverterTest::loadsLocalWorkdayData()
     QVERIFY(workday->kind == WorkdayEntry::Kind::Workday);
 
     QVERIFY(!data.entryForDate(QDate(2026, 2, 27)));
+}
+
+void LunarConverterTest::loadsEventColorsWithOverride()
+{
+    QStandardPaths::setTestModeEnabled(true);
+    const QString path = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+        + QStringLiteral("/lunarcalendar/eventcolors.json");
+    QVERIFY(QDir().mkpath(QFileInfo(path).dir().path()));
+
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    file.write(R"({"festival": "#ff0000", "solarTerm": "不是颜色"})");
+    file.close();
+
+    EventColors colors;
+    QCOMPARE(colors.colorFor(EventColors::Kind::Festival), QStringLiteral("#ff0000"));
+    QCOMPARE(colors.colorFor(EventColors::Kind::SolarTerm), QStringLiteral("#2e7d32"));
+    QCOMPARE(colors.colorFor(EventColors::Kind::Workday), QStringLiteral("#1565c0"));
+    QCOMPARE(colors.colorFor(EventColors::Kind::DayOff), QStringLiteral("#ef6c00"));
 }
 
 void LunarConverterTest::rejectsUnsupportedDates()

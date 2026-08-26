@@ -24,6 +24,7 @@ find_package(KF6 REQUIRED COMPONENTS CoreAddons)
 find_package(KF6Declarative REQUIRED)
 
 add_library(lunarcalendarcore STATIC
+    src/eventcolors.cpp
     src/lunarconverter.cpp
     src/solarterms.cpp
     src/workdaydata.cpp

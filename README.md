@@ -9,6 +9,7 @@
 - 在阳历日期下方显示农历日，例如 `初六`、`廿三`。
 - 节气和传统节日优先显示，例如 `立春`、`中秋节`。
 - 对调休日期显示 `休·初六` 或 `班·初六`。
+- 节日、节气与调休日期在日期格上方显示彩色圆点，并在左侧日程面板显示带彩色竖条的条目：节日红色、节气绿色、调休上班蓝色、假期橙色（配色可在 `eventcolors.json` 中调整）。
 - 鼠标悬停日期时显示完整农历日期、节气、传统节日和调休说明。
 - 农历换算覆盖 1900 至 2100 年。
 - 所有数据均在本地读取，运行时不访问网络。
@@ -19,6 +20,7 @@
 - 节气：本地计算，不依赖在线服务。
 - 传统节日：根据农历日期本地推导。
 - 法定节假日和调休：按年份随软件包提供，当前内置 2026 年安排。
+- 配色：默认值内置，随包提供 `data/eventcolors.json`；放在 `~/.local/share/lunarcalendar/eventcolors.json` 的同名文件会优先于系统包内数据，可本地调整节日/节气/班/休四类事件的颜色。
 
 2026 年调休数据来自国务院办公厅《关于 2026 年部分节假日安排的通知》（国办发明电〔2025〕7号）。地区性假期和单位自行安排不在本插件范围内。
 
@@ -119,13 +121,15 @@ src/
   lunarconverter.*        本地农历转换与传统节日
   solarterms.*            二十四节气计算
   workdaydata.*           按年份读取本地调休数据
-data/workdays/
-  2026.json               2026 年法定假日与补班数据
+  eventcolors.*           节日/节气/调休事件配色（可被本地 JSON 覆盖）
+data/
+  eventcolors.json        默认配色
+  workdays/2026.json      2026 年法定假日与补班数据
 postinstall/
   suishi-postinstall-hint            首次登录一次性提示脚本（一键启用）
   suishi-postinstall-hint.desktop.in  XDG autostart 入口模板
 tests/
-  lunarconvertertest.cpp  农历、节气与调休加载测试
+  lunarconvertertest.cpp  农历、节气、调休与配色加载测试
 ```
 
 ## 许可

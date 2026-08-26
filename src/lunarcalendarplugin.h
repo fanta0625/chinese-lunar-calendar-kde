@@ -7,6 +7,13 @@
 
 #include <CalendarEvents/CalendarEventsPlugin>
 
+#include <QDate>
+#include <QList>
+
+#include <optional>
+
+#include "eventcolors.h"
+#include "lunarconverter.h"
 #include "workdaydata.h"
 
 class LunarCalendarPlugin final : public CalendarEvents::CalendarEventsPlugin
@@ -21,7 +28,17 @@ public:
     void loadEventsForDateRange(const QDate &startDate, const QDate &endDate) override;
 
 private:
-    CalendarEvents::CalendarEventsPlugin::SubLabel subLabelForDate(const QDate &date);
+    struct DateInfo {
+        std::optional<LunarDate> lunar;
+        QString solarTerm;
+        QString festival;
+        std::optional<WorkdayEntry> workday;
+    };
+
+    DateInfo infoForDate(const QDate &date);
+    CalendarEvents::CalendarEventsPlugin::SubLabel subLabelForDate(const DateInfo &info) const;
+    QList<CalendarEvents::EventData> eventsForDate(const DateInfo &info, const QDate &date) const;
 
     WorkdayData m_workdayData;
+    EventColors m_colors;
 };
