@@ -34,6 +34,9 @@ target_link_libraries(lunarcalendarcore PUBLIC Qt6::Core)
 
 # Plasma loads calendar event extensions as shared libraries.
 set(BUILD_SHARED_LIBS ON)
+# Some KF6 distributions require this for kcoreaddons_add_plugin() to place
+# the uninstalled module in the build tree instead of the filesystem root.
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 
 kcoreaddons_add_plugin(locallunarcalendar
     SOURCES
