@@ -13,6 +13,7 @@
 #include <optional>
 
 #include "eventcolors.h"
+#include "customevents.h"
 #include "lunarconverter.h"
 #include "workdaydata.h"
 
@@ -41,4 +42,5 @@ private:
 
     WorkdayData m_workdayData;
     EventColors m_colors;
+    CustomEvents m_customEvents;
 };

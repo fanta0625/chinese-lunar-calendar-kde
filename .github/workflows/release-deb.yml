@@ -35,6 +35,7 @@ jobs:
             libkf6config-dev \
             libkf6coreaddons-dev \
             libkf6declarative-dev \
+            qt6-declarative-dev \
             qt6-base-dev \
             qt6-base-dev-tools
 

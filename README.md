@@ -10,6 +10,7 @@
 - 节气和传统节日优先显示，例如 `立春`、`中秋节`。
 - 对调休日期显示 `休·初六` 或 `班·初六`。
 - 节日、节气与调休日期在日期格上方显示彩色圆点，并在左侧日程面板显示带彩色竖条的条目：节日红色、节气绿色、调休上班蓝色、假期橙色（配色可在 `eventcolors.json` 中调整）。
+- 支持在数字时钟的“岁时”设置页中添加、编辑、删除自定义事件，可设置颜色和每年重复。
 - 鼠标悬停日期时显示完整农历日期、节气、传统节日和调休说明。
 - 农历换算覆盖 1900 至 2100 年。
 - 所有数据均在本地读取，运行时不访问网络。
@@ -21,6 +22,7 @@
 - 传统节日：根据农历日期本地推导。
 - 法定节假日和调休：按年份随软件包提供，当前内置 2026 年安排。
 - 配色：默认值内置，随包提供 `data/eventcolors.json`；放在 `~/.local/share/lunarcalendar/eventcolors.json` 的同名文件会优先于系统包内数据，可本地调整节日/节气/班/休四类事件的颜色。
+- 自定义事件：系统预置文件为 `data/events.json`，用户文件为 `~/.local/share/lunarcalendar/events.json`。未编辑过时使用系统文件；第一次添加、修改或删除事件时，系统事件会被接管并原子写入用户文件，之后用户文件独立于软件包更新。
 
 2026 年调休数据来自国务院办公厅《关于 2026 年部分节假日安排的通知》（国办发明电〔2025〕7号）。地区性假期和单位自行安排不在本插件范围内。
 
@@ -45,14 +47,15 @@
 - CMake 3.16 或更高版本
 - C++17 编译器
 - ECM（Extra CMake Modules）
-- Qt 6 Core 与 Test 开发包
+- Qt 6 Core、Qml 与 Test 开发包
 - KDE Frameworks 6 的 `CalendarEvents` 与 `CoreAddons` 开发包
 
 在 Debian/Ubuntu 等发行版上，常见的依赖包包括：
 
 ```bash
 sudo apt install build-essential cmake extra-cmake-modules qt6-base-dev \
-  qt6-base-dev-tools libkf6declarative-dev libkf6coreaddons-dev
+  qt6-base-dev-tools qt6-declarative-dev libkf6declarative-dev \
+  libkf6coreaddons-dev
 ```
 
 不同发行版的包名可能不同。`CalendarEvents` 由 `kdeclarative` 的开发包提供。
@@ -72,7 +75,21 @@ sudo cmake --install build
 systemctl --user restart plasma-plasmashell.service
 ```
 
-随后右键系统右下角的“数字时钟”，依次打开“配置数字时钟”与“日历”，勾选“岁时”。该步骤会把插件 ID 写入数字时钟小部件的 `enabledCalendarPlugins` 配置项；如果跳过此步骤，插件不会向日历提供任何数据。如果系统的“其他历法”插件已设为中国农历，应关闭它，避免两个插件同时向日期格提供农历副标题。
+随后右键系统右下角的“数字时钟”，依次打开“配置数字时钟”与“日历”，勾选“岁时”。该步骤会把插件 ID 写入数字时钟小部件的 `enabledCalendarPlugins` 配置项；如果跳过此步骤，插件不会向日历提供任何数据。启用后，配置数字时钟对话框中会出现“岁时”页签，可在其中管理自定义事件。如果系统的“其他历法”插件已设为中国农历，应关闭它，避免两个插件同时向日期格提供农历副标题。
+
+自定义事件保存在以下文件中：
+
+```text
+~/.local/share/lunarcalendar/events.json
+```
+
+系统预置文件可由软件包提供：
+
+```text
+/usr/share/lunarcalendar/events.json
+```
+
+首次编辑系统预置事件时，岁时会把当前内容接管到用户文件，再保存用户修改。删除全部事件也会保留一个空的用户文件，因此系统预置事件不会重新出现。配置页中的“恢复系统预置”会删除用户文件并重新加载系统文件。
 
 > **打包注意**：Plasma 日历插件是“按需启用”的，`enabledCalendarPlugins` 的默认值为空，因此仅安装软件包不会自动启用插件。已在 Plasma 6.3.6（Loongnix）上验证：元数据中的 `"EnabledByDefault": true` 不会改变这一行为，plasmashell 只加载配置项中显式列出的插件。
 >
@@ -118,17 +135,22 @@ suishi_0.1.0_amd64.deb
 ```text
 src/
   lunarcalendarplugin.*   Plasma 日历事件插件
+  customevents.*          自定义事件文件读取、校验与日期查询
+  customeventsconfig.*    配置页使用的 QML 列表模型
+  eventsconfig.qml        数字时钟配置页
   lunarconverter.*        本地农历转换与传统节日
   solarterms.*            二十四节气计算
   workdaydata.*           按年份读取本地调休数据
   eventcolors.*           节日/节气/调休事件配色（可被本地 JSON 覆盖）
 data/
+  events.json             系统预置自定义事件
   eventcolors.json        默认配色
   workdays/2026.json      2026 年法定假日与补班数据
 postinstall/
   suishi-postinstall-hint            首次登录一次性提示脚本（一键启用）
   suishi-postinstall-hint.desktop.in  XDG autostart 入口模板
 tests/
+  customeventstest.cpp    自定义事件存储、接管与重复规则测试
   lunarconvertertest.cpp  农历、节气、调休与配色加载测试
 ```
 

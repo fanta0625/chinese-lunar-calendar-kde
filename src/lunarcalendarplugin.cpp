@@ -5,11 +5,14 @@
 
 #include "lunarcalendarplugin.h"
 
+#include "customeventsconfig.h"
 #include "lunarconverter.h"
 #include "solarterms.h"
 
 #include <QDateTime>
+#include <QDebug>
 #include <QStringList>
+#include <qqml.h>
 
 using SubLabel = CalendarEvents::CalendarEventsPlugin::SubLabel;
 using SubLabelPriority = CalendarEvents::CalendarEventsPlugin::SubLabelPriority;
@@ -18,6 +21,9 @@ using EventData = CalendarEvents::EventData;
 LunarCalendarPlugin::LunarCalendarPlugin(QObject *parent)
     : CalendarEventsPlugin(parent)
 {
+    static const int customEventsModelTypeId = qmlRegisterType<CustomEventsModel>(
+        "org.kde.plasma.private.locallunarcalendar", 1, 0, "CustomEventsModel");
+    Q_UNUSED(customEventsModelTypeId);
 }
 
 void LunarCalendarPlugin::loadEventsForDateRange(const QDate &startDate, const QDate &endDate)
@@ -28,6 +34,13 @@ void LunarCalendarPlugin::loadEventsForDateRange(const QDate &startDate, const Q
         Q_EMIT subLabelReady(labels);
         Q_EMIT dataReady(events);
         return;
+    }
+
+    const QString previousCustomEventsError = m_customEvents.errorString();
+    QString customEventsError;
+    if (!m_customEvents.reloadIfChanged(&customEventsError) && !customEventsError.isEmpty()
+        && customEventsError != previousCustomEventsError) {
+        qWarning().noquote() << customEventsError;
     }
 
     for (QDate date = startDate; date <= endDate; date = date.addDays(1)) {
@@ -100,44 +113,56 @@ SubLabel LunarCalendarPlugin::subLabelForDate(const DateInfo &info) const
 QList<EventData> LunarCalendarPlugin::eventsForDate(const DateInfo &info, const QDate &date) const
 {
     QList<EventData> events;
-    if (!info.lunar) {
-        return events;
+    const QString dateKey = date.toString(Qt::ISODate);
+
+    if (info.lunar) {
+        const QString lunarFull = LunarConverter::fullLabel(*info.lunar);
+        const auto addHolidayEvent = [&](const QString &title, const QString &description, const QString &color, const QString &uid) {
+            EventData event;
+            event.setTitle(title);
+            event.setDescription(description);
+            event.setStartDateTime(date.startOfDay());
+            event.setEndDateTime(date.startOfDay());
+            event.setIsAllDay(true);
+            event.setEventType(EventData::Holiday);
+            event.setEventColor(color);
+            event.setUid(uid);
+            events.append(event);
+        };
+
+        if (!info.solarTerm.isEmpty()) {
+            addHolidayEvent(info.solarTerm,
+                            QStringLiteral("节气 · %1").arg(lunarFull),
+                            m_colors.colorFor(EventColors::Kind::SolarTerm),
+                            QStringLiteral("suishi-solarterm-%1").arg(dateKey));
+        }
+        if (!info.festival.isEmpty()) {
+            addHolidayEvent(info.festival,
+                            QStringLiteral("传统节日 · %1").arg(lunarFull),
+                            m_colors.colorFor(EventColors::Kind::Festival),
+                            QStringLiteral("suishi-festival-%1").arg(dateKey));
+        }
+        if (info.workday) {
+            const bool isWorkday = info.workday->kind == WorkdayEntry::Kind::Workday;
+            const QString marker = isWorkday ? QStringLiteral("班") : QStringLiteral("休");
+            addHolidayEvent(QStringLiteral("%1：%2").arg(marker, info.workday->name),
+                            isWorkday ? QStringLiteral("调休上班") : QStringLiteral("假期"),
+                            m_colors.colorFor(isWorkday ? EventColors::Kind::Workday : EventColors::Kind::DayOff),
+                            QStringLiteral("suishi-%1-%2").arg(isWorkday ? QStringLiteral("workday") : QStringLiteral("dayoff"), dateKey));
+        }
     }
 
-    const QString dateKey = date.toString(Qt::ISODate);
-    const QString lunarFull = LunarConverter::fullLabel(*info.lunar);
-    const auto addEvent = [&](const QString &title, const QString &description, const QString &color, const QString &uid) {
+    for (const CustomEvent &customEvent : m_customEvents.eventsForDate(date)) {
         EventData event;
-        event.setTitle(title);
-        event.setDescription(description);
+        event.setTitle(customEvent.name);
+        event.setDescription(QStringLiteral("岁时自定义事件"));
         event.setStartDateTime(date.startOfDay());
         event.setEndDateTime(date.startOfDay());
         event.setIsAllDay(true);
-        event.setEventType(EventData::Holiday);
-        event.setEventColor(color);
-        event.setUid(uid);
+        event.setEventType(EventData::Event);
+        event.setEventColor(customEvent.color);
+        event.setUid(QStringLiteral("suishi-custom-%1").arg(customEvent.id));
         events.append(event);
-    };
-
-    if (!info.solarTerm.isEmpty()) {
-        addEvent(info.solarTerm,
-                 QStringLiteral("节气 · %1").arg(lunarFull),
-                 m_colors.colorFor(EventColors::Kind::SolarTerm),
-                 QStringLiteral("suishi-solarterm-%1").arg(dateKey));
-    }
-    if (!info.festival.isEmpty()) {
-        addEvent(info.festival,
-                 QStringLiteral("传统节日 · %1").arg(lunarFull),
-                 m_colors.colorFor(EventColors::Kind::Festival),
-                 QStringLiteral("suishi-festival-%1").arg(dateKey));
-    }
-    if (info.workday) {
-        const bool isWorkday = info.workday->kind == WorkdayEntry::Kind::Workday;
-        const QString marker = isWorkday ? QStringLiteral("班") : QStringLiteral("休");
-        addEvent(QStringLiteral("%1：%2").arg(marker, info.workday->name),
-                 isWorkday ? QStringLiteral("调休上班") : QStringLiteral("假期"),
-                 m_colors.colorFor(isWorkday ? EventColors::Kind::Workday : EventColors::Kind::DayOff),
-                 QStringLiteral("suishi-%1-%2").arg(isWorkday ? QStringLiteral("workday") : QStringLiteral("dayoff"), dateKey));
     }
     return events;
 }

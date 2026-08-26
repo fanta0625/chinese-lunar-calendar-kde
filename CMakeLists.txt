@@ -17,13 +17,14 @@ include(CTest)
 include(KDECompilerSettings NO_POLICY_SCOPE)
 include(KDEInstallDirs)
 
-find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Core Qml)
 find_package(KF6 REQUIRED COMPONENTS CoreAddons)
 # Debian packages CalendarEvents within KF6Declarative rather than as a
 # standalone KF6CalendarEvents CMake package.
 find_package(KF6Declarative REQUIRED)
 
 add_library(lunarcalendarcore STATIC
+    src/customevents.cpp
     src/eventcolors.cpp
     src/lunarconverter.cpp
     src/solarterms.cpp
@@ -41,12 +42,15 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 
 kcoreaddons_add_plugin(locallunarcalendar
     SOURCES
+        src/customeventsconfig.cpp
+        src/customeventsconfig.h
         src/lunarcalendarplugin.cpp
         src/lunarcalendarplugin.h
     INSTALL_NAMESPACE "plasmacalendarplugins"
 )
 
 target_link_libraries(locallunarcalendar PRIVATE
+    Qt6::Qml
     KF6::CalendarEvents
     KF6::CoreAddons
     lunarcalendarcore
@@ -55,6 +59,10 @@ target_link_libraries(locallunarcalendar PRIVATE
 # Match upstream plasma-workspace convention: calendar plugin files carry no
 # "lib" prefix, and the plugin id is derived from the file name.
 set_target_properties(locallunarcalendar PROPERTIES PREFIX "")
+
+install(FILES src/eventsconfig.qml
+    DESTINATION ${KDE_INSTALL_PLUGINDIR}/plasmacalendarplugins
+)
 
 install(DIRECTORY data/
     DESTINATION ${KDE_INSTALL_DATADIR}/lunarcalendar
@@ -85,6 +93,15 @@ if(BUILD_TESTING)
         lunarcalendarcore
     )
     add_test(NAME lunarcalendarcore_test COMMAND lunarcalendarcore_test)
+
+    add_executable(customeventstest
+        tests/customeventstest.cpp
+    )
+    target_link_libraries(customeventstest PRIVATE
+        Qt6::Test
+        lunarcalendarcore
+    )
+    add_test(NAME customeventstest COMMAND customeventstest)
 endif()
 
 set(CPACK_GENERATOR "DEB")
