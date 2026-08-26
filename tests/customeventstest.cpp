@@ -149,8 +149,10 @@ void CustomEventsTest::expandsYearlyEvents()
 
     QCOMPARE(events.eventsForDate(QDate(2030, 10, 1)).size(), 1);
     QCOMPARE(events.eventsForDate(QDate(2030, 10, 1)).first().name, QStringLiteral("生日"));
-    QCOMPARE(events.eventsForDate(QDate(2030, 10, 2)).size(), 1);
-    QCOMPARE(events.eventsForDate(QDate(2030, 10, 2)).first().name, QStringLiteral("一次性事件"));
+    // 一次性事件只出现在其自身日期，不跨年。
+    QVERIFY(events.eventsForDate(QDate(2030, 10, 2)).isEmpty());
+    QCOMPARE(events.eventsForDate(QDate(2026, 10, 2)).size(), 1);
+    QCOMPARE(events.eventsForDate(QDate(2026, 10, 2)).first().name, QStringLiteral("一次性事件"));
     QVERIFY(events.eventsForDate(QDate(2030, 2, 29)).isEmpty());
     QCOMPARE(events.eventsForDate(QDate(2032, 2, 29)).size(), 1);
 }

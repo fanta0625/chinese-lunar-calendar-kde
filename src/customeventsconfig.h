@@ -11,7 +11,7 @@
 
 #include "customevents.h"
 
-class CustomEventsModel final : public QAbstractListModel
+class CustomEventsModel : public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(QString errorString READ errorString NOTIFY errorStringChanged)
