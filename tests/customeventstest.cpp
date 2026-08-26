@@ -172,7 +172,9 @@ void CustomEventsTest::expandsRecurringEvents()
                                     makeEvent(QStringLiteral("weekly"),
                                               QDate(2026, 1, 10),
                                               QStringLiteral("每周"),
-                                              CustomEvent::RepeatType::Weekly),
+                                              CustomEvent::RepeatType::Weekly,
+                                              1,
+                                              CustomEvent::RepeatUnit::Week),
                                     makeEvent(QStringLiteral("monthly"),
                                               QDate(2026, 1, 31),
                                               QStringLiteral("每月"),
@@ -219,8 +221,9 @@ void CustomEventsTest::expandsRecurringEvents()
                                    &error),
              qPrintable(error));
 
-    QCOMPARE(events.eventsForDate(QDate(2026, 1, 11)).size(), 1);
-    QCOMPARE(events.eventsForDate(QDate(2026, 1, 11)).first().name, QStringLiteral("每天"));
+    const auto januaryEleventh = events.eventsForDate(QDate(2026, 1, 11));
+    QVERIFY(hasEventNamed(januaryEleventh, QStringLiteral("每天")));
+    QVERIFY(hasEventNamed(januaryEleventh, QStringLiteral("每两天")));
     QVERIFY(hasEventNamed(events.eventsForDate(QDate(2026, 1, 3)), QStringLiteral("每两天")));
     QVERIFY(!hasEventNamed(events.eventsForDate(QDate(2026, 1, 2)), QStringLiteral("每两天")));
     const auto weeklyDate = events.eventsForDate(QDate(2026, 1, 17));
