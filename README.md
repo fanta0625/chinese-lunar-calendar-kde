@@ -74,7 +74,7 @@ systemctl --user restart plasma-plasmashell.service
 
 > **打包注意**：Plasma 日历插件是“按需启用”的，`enabledCalendarPlugins` 的默认值为空，因此仅安装软件包不会自动启用插件。已在 Plasma 6.3.6（Loongnix）上验证：元数据中的 `"EnabledByDefault": true` 不会改变这一行为，plasmashell 只加载配置项中显式列出的插件。
 >
-> 为改善开箱体验，软件包含“首次登录提示”机制：安装后的第一次登录会弹出一条 Plasma 通知，带“立即启用”按钮，点击后自动写入配置并重启 plasmashell（由 `postinstall/` 下的脚本与 XDG autostart 桌面文件实现，依赖 `python3` 与 `libnotify-bin`，已写入 DEB 依赖）。提示只显示一次；用户也可以随时按上文步骤在界面中启用或关闭。
+> 为改善开箱体验，软件包含“首次登录提示”机制：安装后的第一次登录会弹出一条 Plasma 通知，带“立即启用”按钮，点击后自动写入配置并重启 plasmashell（由 `postinstall/` 下的脚本与 XDG autostart 桌面文件实现，依赖 `python3` 与 `libnotify-bin`，已写入 DEB 依赖）。提示只显示一次；用户也可以随时按上文步骤在界面中启用或关闭。脚本会等待通知服务就绪后再发送，发送失败不写标记、下次登录重试；诊断信息在 `~/.config/suishi/postinstall-hint.log`。
 
 ## 更新调休数据
 

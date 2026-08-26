@@ -8,19 +8,65 @@
 # 由 /etc/xdg/autostart/suishi-postinstall-hint.desktop 在安装后的首次
 # 登录时执行一次：弹出一条 Plasma 通知，用户点击“立即启用”后自动把插件
 # 写入数字时钟的 enabledCalendarPlugins 配置并重启 plasmashell。
-# 无论用户是否点击，提示只显示一次（以 ~/.config/suishi/postinstall-hint-shown
-# 为标记），避免每次登录都打扰。
+# 提示只显示一次（以 ~/.config/suishi/postinstall-hint-shown 为标记）。
+#
+# 登录早期通知服务（由 plasmashell 提供）可能尚未就绪，因此发送前先等
+# 待 org.freedesktop.Notifications 出现在会话总线上；只有通知真正被通知
+# 服务接受后才写入标记，否则本次登录不标记、下次登录重试。诊断信息写入
+# ~/.config/suishi/postinstall-hint.log。
 
+import datetime
+import os
 import re
 import subprocess
+import time
 from pathlib import Path
 
 PLUGIN_ID = "locallunarcalendar"
 KEY = "enabledCalendarPlugins"
 
+# 等待通知服务出现的最长时间（秒），可用环境变量覆盖以便测试。
+WAIT_SECONDS = int(os.environ.get("SUISHI_HINT_WAIT_SECONDS", "120"))
+
 CONFIG_PATH = Path.home() / ".config" / "plasma-org.kde.plasma.desktop-appletsrc"
 FLAG_DIR = Path.home() / ".config" / "suishi"
 FLAG_PATH = FLAG_DIR / "postinstall-hint-shown"
+LOG_PATH = FLAG_DIR / "postinstall-hint.log"
+
+
+def log(message):
+    # 同时写诊断日志和标准输出：autostart 场景 stdout 被丢弃，手动执行时
+    # 用户能直接在终端看到脚本做了什么。
+    print(message)
+    FLAG_DIR.mkdir(parents=True, exist_ok=True)
+    with LOG_PATH.open("a", encoding="utf-8") as f:
+        f.write("{} {}\n".format(datetime.datetime.now().isoformat(timespec="seconds"), message))
+
+
+def notification_service_ready():
+    """org.freedesktop.Notifications 是否已在会话总线上注册。"""
+    try:
+        result = subprocess.run(
+            [
+                "dbus-send", "--session", "--print-reply",
+                "--dest=org.freedesktop.DBus", "/org/freedesktop/DBus",
+                "org.freedesktop.DBus.NameHasOwner",
+                "string:org.freedesktop.Notifications",
+            ],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0 and "true" in result.stdout
+
+
+def wait_for_notification_service():
+    deadline = time.monotonic() + WAIT_SECONDS
+    while time.monotonic() < deadline:
+        if notification_service_ready():
+            return True
+        time.sleep(3)
+    return False
 
 
 def notify(summary, body, actions=None, timeout=60000):
@@ -34,7 +80,11 @@ def notify(summary, body, actions=None, timeout=60000):
     for key, label in (actions or {}).items():
         cmd += ["--action", "{}={}".format(key, label)]
     cmd += [summary, body]
-    return subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True)
+    except FileNotFoundError:
+        # notify-send 未安装（例如用 dpkg -i 直接装包、依赖未满足）。
+        return subprocess.CompletedProcess(cmd, 127, stdout="", stderr="notify-send 未找到")
 
 
 def read_lines():
@@ -135,12 +185,19 @@ def start_plasmashell(how):
 
 def main():
     if FLAG_PATH.exists():
+        log("标记文件已存在（{}），跳过".format(FLAG_PATH))
         return
 
-    # 已启用则静默跳过，不打扰用户。
+    # 已启用则跳过提示，不打扰用户。
     if already_enabled():
+        log("插件已在数字时钟配置中启用，无需提示")
         FLAG_DIR.mkdir(parents=True, exist_ok=True)
         FLAG_PATH.touch()
+        return
+
+    log("提示开始：等待通知服务就绪（最长 {} 秒）".format(WAIT_SECONDS))
+    if not wait_for_notification_service():
+        log("等待超时：通知服务未出现，本次不标记，下次登录重试")
         return
 
     result = notify(
@@ -150,11 +207,17 @@ def main():
         actions={"enable": "立即启用"},
     )
 
-    # 提示只显示一次，无论用户是否点击。
+    if result.returncode != 0:
+        # 通知没有被通知服务接受：不写标记，下次登录重试。
+        log("通知发送失败（exit {}），本次不标记：{}".format(result.returncode, result.stderr.strip()))
+        return
+
+    # 通知已被接受（用户点击、关闭或超时均算展示过）：只提示这一次。
     FLAG_DIR.mkdir(parents=True, exist_ok=True)
     FLAG_PATH.touch()
+    log("通知已展示，标记已写入")
 
-    if result.returncode == 0 and result.stdout.strip() == "enable":
+    if result.stdout.strip() == "enable":
         lines = read_lines()
         bases = digital_clock_bases(lines)
         if not bases:
@@ -172,6 +235,7 @@ def main():
             "系统日历现在会显示农历、节气与调休信息。",
             timeout=10000,
         )
+        log("一键启用完成")
 
 
 if __name__ == "__main__":

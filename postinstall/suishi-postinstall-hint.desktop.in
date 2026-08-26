@@ -8,4 +8,3 @@ Exec=@KDE_INSTALL_FULL_LIBEXECDIR@/suishi-postinstall-hint
 Icon=office-calendar
 OnlyShowIn=KDE;
 NoDisplay=true
-X-KDE-autostart-phase=1
