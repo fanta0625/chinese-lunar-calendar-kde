@@ -26,9 +26,32 @@ bool writeFile(const QString &path, const QByteArray &content)
     return file.write(content) == content.size();
 }
 
-CustomEvent makeEvent(const QString &id, const QDate &date, const QString &name, bool repeatYearly = false)
+CustomEvent makeEvent(const QString &id,
+                      const QDate &date,
+                      const QString &name,
+                      CustomEvent::RepeatType repeatType = CustomEvent::RepeatType::None,
+                      int repeatInterval = 1,
+                      CustomEvent::RepeatUnit repeatUnit = CustomEvent::RepeatUnit::Day)
 {
-    return CustomEvent{id, date, name, QStringLiteral("#8e24aa"), repeatYearly};
+    CustomEvent event;
+    event.id = id;
+    event.date = date;
+    event.name = name;
+    event.color = QStringLiteral("#8e24aa");
+    event.repeatType = repeatType;
+    event.repeatInterval = repeatInterval;
+    event.repeatUnit = repeatUnit;
+    return event;
+}
+
+bool hasEventNamed(const QList<CustomEvent> &events, const QString &name)
+{
+    for (const CustomEvent &event : events) {
+        if (event.name == name) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace
@@ -41,9 +64,10 @@ private Q_SLOTS:
     void usesSystemFileUntilFirstEdit();
     void userFileTakesPrecedence();
     void emptyUserFileBlocksSystemDefaults();
-    void expandsYearlyEvents();
+    void expandsRecurringEvents();
     void reloadsWhenFileChanges();
     void rejectsInvalidData();
+    void rejectsInvalidRecurrence();
     void resetsToSystemDefaults();
 };
 
@@ -132,7 +156,7 @@ void CustomEventsTest::emptyUserFileBlocksSystemDefaults()
     QVERIFY(QFileInfo(userPath).isFile());
 }
 
-void CustomEventsTest::expandsYearlyEvents()
+void CustomEventsTest::expandsRecurringEvents()
 {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
@@ -141,20 +165,87 @@ void CustomEventsTest::expandsYearlyEvents()
     const QString systemPath = directory.filePath(QStringLiteral("system/lunarcalendar/events.json"));
     CustomEvents events(userPath, systemPath);
     QString error;
-    QVERIFY2(events.saveUserEvents({makeEvent(QStringLiteral("birthday"), QDate(2026, 10, 1), QStringLiteral("生日"), true),
-                                    makeEvent(QStringLiteral("leap-day"), QDate(2024, 2, 29), QStringLiteral("闰日"), true),
+    QVERIFY2(events.saveUserEvents({makeEvent(QStringLiteral("daily"),
+                                              QDate(2026, 1, 10),
+                                              QStringLiteral("每天"),
+                                              CustomEvent::RepeatType::Daily),
+                                    makeEvent(QStringLiteral("weekly"),
+                                              QDate(2026, 1, 10),
+                                              QStringLiteral("每周"),
+                                              CustomEvent::RepeatType::Weekly),
+                                    makeEvent(QStringLiteral("monthly"),
+                                              QDate(2026, 1, 31),
+                                              QStringLiteral("每月"),
+                                              CustomEvent::RepeatType::Monthly,
+                                              1,
+                                              CustomEvent::RepeatUnit::Month),
+                                    makeEvent(QStringLiteral("birthday"),
+                                              QDate(2026, 10, 1),
+                                              QStringLiteral("每年"),
+                                              CustomEvent::RepeatType::Yearly,
+                                              1,
+                                              CustomEvent::RepeatUnit::Year),
+                                    makeEvent(QStringLiteral("every-two-weeks"),
+                                              QDate(2026, 1, 5),
+                                              QStringLiteral("每两周"),
+                                              CustomEvent::RepeatType::Custom,
+                                              2,
+                                              CustomEvent::RepeatUnit::Week),
+                                    makeEvent(QStringLiteral("every-two-days"),
+                                              QDate(2026, 1, 1),
+                                              QStringLiteral("每两天"),
+                                              CustomEvent::RepeatType::Custom,
+                                              2,
+                                              CustomEvent::RepeatUnit::Day),
+                                    makeEvent(QStringLiteral("every-three-months"),
+                                              QDate(2026, 1, 15),
+                                              QStringLiteral("每三个月"),
+                                              CustomEvent::RepeatType::Custom,
+                                              3,
+                                              CustomEvent::RepeatUnit::Month),
+                                    makeEvent(QStringLiteral("every-two-years"),
+                                              QDate(2026, 5, 20),
+                                              QStringLiteral("每两年"),
+                                              CustomEvent::RepeatType::Custom,
+                                              2,
+                                              CustomEvent::RepeatUnit::Year),
+                                    makeEvent(QStringLiteral("leap-day"),
+                                              QDate(2024, 2, 29),
+                                              QStringLiteral("闰日"),
+                                              CustomEvent::RepeatType::Yearly,
+                                              1,
+                                              CustomEvent::RepeatUnit::Year),
                                     makeEvent(QStringLiteral("one-time"), QDate(2026, 10, 2), QStringLiteral("一次性事件"))},
                                    &error),
              qPrintable(error));
 
-    QCOMPARE(events.eventsForDate(QDate(2030, 10, 1)).size(), 1);
-    QCOMPARE(events.eventsForDate(QDate(2030, 10, 1)).first().name, QStringLiteral("生日"));
+    QCOMPARE(events.eventsForDate(QDate(2026, 1, 11)).size(), 1);
+    QCOMPARE(events.eventsForDate(QDate(2026, 1, 11)).first().name, QStringLiteral("每天"));
+    QVERIFY(hasEventNamed(events.eventsForDate(QDate(2026, 1, 3)), QStringLiteral("每两天")));
+    QVERIFY(!hasEventNamed(events.eventsForDate(QDate(2026, 1, 2)), QStringLiteral("每两天")));
+    const auto weeklyDate = events.eventsForDate(QDate(2026, 1, 17));
+    QVERIFY(hasEventNamed(weeklyDate, QStringLiteral("每周")));
+    QVERIFY(!hasEventNamed(events.eventsForDate(QDate(2026, 1, 12)), QStringLiteral("每周")));
+    const auto monthlyDate = events.eventsForDate(QDate(2026, 3, 31));
+    QVERIFY(hasEventNamed(monthlyDate, QStringLiteral("每月")));
+    QVERIFY(!hasEventNamed(events.eventsForDate(QDate(2026, 2, 28)), QStringLiteral("每月")));
+    const auto yearlyDate = events.eventsForDate(QDate(2030, 10, 1));
+    QVERIFY(hasEventNamed(yearlyDate, QStringLiteral("每年")));
+    QVERIFY(events.eventsForDate(QDate(2025, 10, 1)).isEmpty());
+    const auto everyTwoWeeksDate = events.eventsForDate(QDate(2026, 1, 19));
+    QVERIFY(hasEventNamed(everyTwoWeeksDate, QStringLiteral("每两周")));
+    QVERIFY(!hasEventNamed(events.eventsForDate(QDate(2026, 1, 12)), QStringLiteral("每两周")));
+    const auto everyThreeMonthsDate = events.eventsForDate(QDate(2026, 4, 15));
+    QVERIFY(hasEventNamed(everyThreeMonthsDate, QStringLiteral("每三个月")));
+    QVERIFY(hasEventNamed(events.eventsForDate(QDate(2026, 7, 15)), QStringLiteral("每三个月")));
+    QVERIFY(!hasEventNamed(events.eventsForDate(QDate(2026, 3, 15)), QStringLiteral("每三个月")));
+    const auto everyTwoYearsDate = events.eventsForDate(QDate(2028, 5, 20));
+    QVERIFY(hasEventNamed(everyTwoYearsDate, QStringLiteral("每两年")));
     // 一次性事件只出现在其自身日期，不跨年。
-    QVERIFY(events.eventsForDate(QDate(2030, 10, 2)).isEmpty());
-    QCOMPARE(events.eventsForDate(QDate(2026, 10, 2)).size(), 1);
-    QCOMPARE(events.eventsForDate(QDate(2026, 10, 2)).first().name, QStringLiteral("一次性事件"));
+    QVERIFY(!hasEventNamed(events.eventsForDate(QDate(2030, 10, 2)), QStringLiteral("一次性事件")));
+    QVERIFY(hasEventNamed(events.eventsForDate(QDate(2026, 10, 2)), QStringLiteral("一次性事件")));
     QVERIFY(events.eventsForDate(QDate(2030, 2, 29)).isEmpty());
-    QCOMPARE(events.eventsForDate(QDate(2032, 2, 29)).size(), 1);
+    QVERIFY(hasEventNamed(events.eventsForDate(QDate(2032, 2, 29)), QStringLiteral("闰日")));
 }
 
 void CustomEventsTest::reloadsWhenFileChanges()
@@ -207,6 +298,37 @@ void CustomEventsTest::rejectsInvalidData()
     QVERIFY(events.events().isEmpty());
     QVERIFY(!events.saveUserEvents({makeEvent(QStringLiteral("new-event"), QDate(2026, 10, 1), QStringLiteral("新事件"))}, &error));
     QVERIFY(!QFileInfo(userPath).exists());
+}
+
+void CustomEventsTest::rejectsInvalidRecurrence()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString userPath = directory.filePath(QStringLiteral("user/lunarcalendar/events.json"));
+    const QString systemPath = directory.filePath(QStringLiteral("system/lunarcalendar/events.json"));
+    QVERIFY(writeFile(systemPath, R"({
+        "schemaVersion": 2,
+        "events": [
+            {
+                "id": "bad-recurrence",
+                "date": "2026-10-01",
+                "name": "坏重复",
+                "color": "#8e24aa",
+                "recurrence": {"type": "custom", "interval": 0, "unit": "week"}
+            }
+        ]
+    })"));
+
+    CustomEvents events(userPath, systemPath);
+    QString error;
+    QVERIFY(!events.reloadIfChanged(&error));
+    QVERIFY(error.contains(QStringLiteral("recurrence")));
+    QVERIFY(events.events().isEmpty());
+
+    CustomEvent invalid = makeEvent(QStringLiteral("invalid"), QDate(2026, 10, 1), QStringLiteral("无效"), CustomEvent::RepeatType::Custom, 0, CustomEvent::RepeatUnit::Week);
+    QVERIFY(!CustomEvents::validateEvent(invalid, &error));
+    QVERIFY(error.contains(QStringLiteral("正整数")));
 }
 
 void CustomEventsTest::resetsToSystemDefaults()

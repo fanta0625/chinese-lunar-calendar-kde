@@ -15,7 +15,13 @@ Item {
     property string formName: ""
     property string formDate: ""
     property string formColor: "#8e24aa"
-    property bool formRepeatYearly: false
+    property string formRepeatType: "none"
+    property int formRepeatInterval: 1
+    property string formRepeatUnit: "day"
+    property var repeatTypeValues: ["none", "daily", "weekly", "monthly", "yearly", "custom"]
+    property var repeatTypeLabels: ["不重复", "每天", "每周", "每月", "每年", "自定义"]
+    property var repeatUnitValues: ["day", "week", "month", "year"]
+    property var repeatUnitLabels: ["天", "周", "月", "年"]
     property string pendingDeleteId: ""
     property string pendingDeleteName: ""
 
@@ -28,19 +34,43 @@ Item {
         formName = ""
         formDate = isoDate(new Date())
         formColor = "#8e24aa"
-        formRepeatYearly = false
+        formRepeatType = "none"
+        formRepeatInterval = 1
+        formRepeatUnit = "day"
         eventsModel.clearError()
         editorSheet.open()
     }
 
-    function openEdit(eventId, eventName, eventDate, eventColor, repeatYearly) {
+    function openEdit(eventId, eventName, eventDate, eventColor, repeatType, repeatInterval, repeatUnit) {
         editingId = eventId
         formName = eventName
         formDate = eventDate
         formColor = eventColor
-        formRepeatYearly = repeatYearly
+        formRepeatType = repeatType
+        formRepeatInterval = repeatInterval
+        formRepeatUnit = repeatUnit
         eventsModel.clearError()
         editorSheet.open()
+    }
+
+    function repeatTypeIndex(value) {
+        var index = repeatTypeValues.indexOf(value)
+        return index >= 0 ? index : 0
+    }
+
+    function repeatUnitIndex(value) {
+        var index = repeatUnitValues.indexOf(value)
+        return index >= 0 ? index : 0
+    }
+
+    function repeatDescription(repeatType, repeatInterval, repeatUnit) {
+        var typeIndex = repeatTypeValues.indexOf(repeatType)
+        if (repeatType === "custom") {
+            var unitIndex = repeatUnitValues.indexOf(repeatUnit)
+            var unitLabel = unitIndex >= 0 ? repeatUnitLabels[unitIndex] : "天"
+            return "每 " + repeatInterval + " " + unitLabel
+        }
+        return typeIndex >= 0 ? repeatTypeLabels[typeIndex] : "不重复"
     }
 
     function tomorrow() {
@@ -53,9 +83,20 @@ Item {
         eventsModel.clearError()
         var saved
         if (editingId.length === 0) {
-            saved = eventsModel.addEvent(formName, formDate, formColor, formRepeatYearly)
+            saved = eventsModel.addEvent(formName,
+                                         formDate,
+                                         formColor,
+                                         formRepeatType,
+                                         formRepeatInterval,
+                                         formRepeatUnit)
         } else {
-            saved = eventsModel.updateEvent(editingId, formName, formDate, formColor, formRepeatYearly)
+            saved = eventsModel.updateEvent(editingId,
+                                            formName,
+                                            formDate,
+                                            formColor,
+                                            formRepeatType,
+                                            formRepeatInterval,
+                                            formRepeatUnit)
         }
         if (saved) {
             editorSheet.close()
@@ -131,7 +172,10 @@ Item {
                         }
 
                         Controls.Label {
-                            text: model.date + (model.repeatYearly ? " · 每年重复" : "")
+                            text: model.date + " · "
+                                  + root.repeatDescription(model.repeatType,
+                                                           model.repeatInterval,
+                                                           model.repeatUnit)
                             color: Kirigami.Theme.disabledTextColor
                             elide: Text.ElideRight
                             Layout.fillWidth: true
@@ -141,7 +185,13 @@ Item {
                     Controls.ToolButton {
                         icon.name: "document-edit"
                         display: Controls.AbstractButton.IconOnly
-                        onClicked: root.openEdit(model.id, model.name, model.date, model.color, model.repeatYearly)
+                        onClicked: root.openEdit(model.id,
+                                                 model.name,
+                                                 model.date,
+                                                 model.color,
+                                                 model.repeatType,
+                                                 model.repeatInterval,
+                                                 model.repeatUnit)
                         Controls.ToolTip.visible: hovered
                         Controls.ToolTip.text: "编辑"
                     }
@@ -155,7 +205,13 @@ Item {
                     }
                 }
 
-                onClicked: root.openEdit(model.id, model.name, model.date, model.color, model.repeatYearly)
+                onClicked: root.openEdit(model.id,
+                                         model.name,
+                                         model.date,
+                                         model.color,
+                                         model.repeatType,
+                                         model.repeatInterval,
+                                         model.repeatUnit)
             }
         }
 
@@ -285,10 +341,72 @@ Item {
                 }
             }
 
-            Controls.CheckBox {
-                text: "每年重复"
-                checked: root.formRepeatYearly
-                onToggled: root.formRepeatYearly = checked
+            Controls.Label {
+                text: "重复"
+                Layout.fillWidth: true
+            }
+
+            Controls.ComboBox {
+                id: repeatTypeField
+
+                model: root.repeatTypeLabels
+                currentIndex: root.repeatTypeIndex(root.formRepeatType)
+                onActivated: function(index) {
+                    root.formRepeatType = root.repeatTypeValues[index]
+                }
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                visible: root.formRepeatType === "custom"
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+
+                Controls.Label {
+                    text: "每"
+                }
+
+                Controls.SpinBox {
+                    id: repeatIntervalField
+
+                    from: 1
+                    to: 999
+                    value: root.formRepeatInterval
+                    editable: true
+                    onValueModified: root.formRepeatInterval = value
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 5
+                }
+
+                Controls.ComboBox {
+                    id: repeatUnitField
+
+                    model: root.repeatUnitLabels
+                    currentIndex: root.repeatUnitIndex(root.formRepeatUnit)
+                    onActivated: function(index) {
+                        root.formRepeatUnit = root.repeatUnitValues[index]
+                    }
+                    Layout.fillWidth: true
+                }
+
+                Controls.Label {
+                    text: "重复一次"
+                }
+            }
+
+            Controls.Label {
+                visible: root.formRepeatType !== "none"
+                text: root.repeatDescription(root.formRepeatType,
+                                             root.formRepeatInterval,
+                                             root.formRepeatUnit)
+                color: Kirigami.Theme.disabledTextColor
+                Layout.fillWidth: true
+            }
+
+            Controls.Label {
+                visible: root.formRepeatType === "monthly"
+                text: "按事件日期的日号重复；没有该日号的月份会跳过。"
+                color: Kirigami.Theme.disabledTextColor
+                wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
 

@@ -11,11 +11,29 @@
 #include <QString>
 
 struct CustomEvent {
+    enum class RepeatType {
+        None,
+        Daily,
+        Weekly,
+        Monthly,
+        Yearly,
+        Custom,
+    };
+
+    enum class RepeatUnit {
+        Day,
+        Week,
+        Month,
+        Year,
+    };
+
     QString id;
     QDate date;
     QString name;
     QString color;
-    bool repeatYearly = false;
+    RepeatType repeatType = RepeatType::None;
+    int repeatInterval = 1;
+    RepeatUnit repeatUnit = RepeatUnit::Day;
 };
 
 class CustomEvents
@@ -46,6 +64,10 @@ public:
     QString sourcePath() const;
     QString errorString() const;
 
+    static QString repeatTypeToString(CustomEvent::RepeatType type);
+    static bool repeatTypeFromString(const QString &value, CustomEvent::RepeatType *type);
+    static QString repeatUnitToString(CustomEvent::RepeatUnit unit);
+    static bool repeatUnitFromString(const QString &value, CustomEvent::RepeatUnit *unit);
     static bool validateEvent(const CustomEvent &event, QString *error = nullptr);
     static bool validateEvents(const QList<CustomEvent> &events, QString *error = nullptr);
 

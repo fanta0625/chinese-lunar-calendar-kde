@@ -16,7 +16,9 @@ bool eventFromInput(const QString &id,
                     const QString &name,
                     const QString &dateText,
                     const QString &color,
-                    bool repeatYearly,
+                    const QString &repeatTypeText,
+                    int repeatInterval,
+                    const QString &repeatUnitText,
                     CustomEvent *event,
                     QString *error)
 {
@@ -34,7 +36,43 @@ bool eventFromInput(const QString &id,
     result.date = parsedDate;
     result.name = name.trimmed();
     result.color = color.trimmed();
-    result.repeatYearly = repeatYearly;
+    if (!CustomEvents::repeatTypeFromString(repeatTypeText, &result.repeatType)) {
+        if (error) {
+            *error = QStringLiteral("重复类型无效");
+        }
+        return false;
+    }
+    if (!CustomEvents::repeatUnitFromString(repeatUnitText, &result.repeatUnit)) {
+        if (error) {
+            *error = QStringLiteral("重复单位无效");
+        }
+        return false;
+    }
+    if (result.repeatType == CustomEvent::RepeatType::None) {
+        result.repeatInterval = 1;
+        result.repeatUnit = CustomEvent::RepeatUnit::Day;
+    } else if (result.repeatType != CustomEvent::RepeatType::Custom) {
+        result.repeatInterval = 1;
+        switch (result.repeatType) {
+        case CustomEvent::RepeatType::Daily:
+            result.repeatUnit = CustomEvent::RepeatUnit::Day;
+            break;
+        case CustomEvent::RepeatType::Weekly:
+            result.repeatUnit = CustomEvent::RepeatUnit::Week;
+            break;
+        case CustomEvent::RepeatType::Monthly:
+            result.repeatUnit = CustomEvent::RepeatUnit::Month;
+            break;
+        case CustomEvent::RepeatType::Yearly:
+            result.repeatUnit = CustomEvent::RepeatUnit::Year;
+            break;
+        case CustomEvent::RepeatType::Custom:
+        case CustomEvent::RepeatType::None:
+            break;
+        }
+    } else {
+        result.repeatInterval = repeatInterval;
+    }
 
     if (!CustomEvents::validateEvent(result, error)) {
         return false;
@@ -76,8 +114,12 @@ QVariant CustomEventsModel::data(const QModelIndex &index, int role) const
         return event.name;
     case ColorRole:
         return event.color;
-    case RepeatYearlyRole:
-        return event.repeatYearly;
+    case RepeatTypeRole:
+        return CustomEvents::repeatTypeToString(event.repeatType);
+    case RepeatIntervalRole:
+        return event.repeatInterval;
+    case RepeatUnitRole:
+        return CustomEvents::repeatUnitToString(event.repeatUnit);
     default:
         return QVariant();
     }
@@ -90,7 +132,9 @@ QHash<int, QByteArray> CustomEventsModel::roleNames() const
         {DateRole, "date"},
         {NameRole, "name"},
         {ColorRole, "color"},
-        {RepeatYearlyRole, "repeatYearly"},
+        {RepeatTypeRole, "repeatType"},
+        {RepeatIntervalRole, "repeatInterval"},
+        {RepeatUnitRole, "repeatUnit"},
     };
 }
 
@@ -118,11 +162,24 @@ bool CustomEventsModel::reload()
     return loaded;
 }
 
-bool CustomEventsModel::addEvent(const QString &name, const QString &date, const QString &color, bool repeatYearly)
+bool CustomEventsModel::addEvent(const QString &name,
+                                 const QString &date,
+                                 const QString &color,
+                                 const QString &repeatType,
+                                 int repeatInterval,
+                                 const QString &repeatUnit)
 {
     CustomEvent event;
     QString error;
-    if (!eventFromInput(QUuid::createUuid().toString(QUuid::WithoutBraces), name, date, color, repeatYearly, &event, &error)) {
+    if (!eventFromInput(QUuid::createUuid().toString(QUuid::WithoutBraces),
+                        name,
+                        date,
+                        color,
+                        repeatType,
+                        repeatInterval,
+                        repeatUnit,
+                        &event,
+                        &error)) {
         setError(error);
         return false;
     }
@@ -136,7 +193,9 @@ bool CustomEventsModel::updateEvent(const QString &id,
                                     const QString &name,
                                     const QString &date,
                                     const QString &color,
-                                    bool repeatYearly)
+                                    const QString &repeatType,
+                                    int repeatInterval,
+                                    const QString &repeatUnit)
 {
     const QString normalizedId = id.trimmed();
     const auto eventIt = std::find_if(m_events.cbegin(), m_events.cend(), [&normalizedId](const CustomEvent &event) {
@@ -149,7 +208,15 @@ bool CustomEventsModel::updateEvent(const QString &id,
 
     CustomEvent replacement;
     QString error;
-    if (!eventFromInput(normalizedId, name, date, color, repeatYearly, &replacement, &error)) {
+    if (!eventFromInput(normalizedId,
+                        name,
+                        date,
+                        color,
+                        repeatType,
+                        repeatInterval,
+                        repeatUnit,
+                        &replacement,
+                        &error)) {
         setError(error);
         return false;
     }

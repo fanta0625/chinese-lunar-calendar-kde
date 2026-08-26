@@ -24,7 +24,9 @@ public:
         DateRole,
         NameRole,
         ColorRole,
-        RepeatYearlyRole,
+        RepeatTypeRole,
+        RepeatIntervalRole,
+        RepeatUnitRole,
     };
     Q_ENUM(Role)
 
@@ -39,8 +41,19 @@ public:
     bool hasUserFile() const;
 
     Q_INVOKABLE bool reload();
-    Q_INVOKABLE bool addEvent(const QString &name, const QString &date, const QString &color, bool repeatYearly);
-    Q_INVOKABLE bool updateEvent(const QString &id, const QString &name, const QString &date, const QString &color, bool repeatYearly);
+    Q_INVOKABLE bool addEvent(const QString &name,
+                              const QString &date,
+                              const QString &color,
+                              const QString &repeatType,
+                              int repeatInterval,
+                              const QString &repeatUnit);
+    Q_INVOKABLE bool updateEvent(const QString &id,
+                                 const QString &name,
+                                 const QString &date,
+                                 const QString &color,
+                                 const QString &repeatType,
+                                 int repeatInterval,
+                                 const QString &repeatUnit);
     Q_INVOKABLE bool removeEvent(const QString &id);
     Q_INVOKABLE bool resetToSystemDefaults();
     Q_INVOKABLE void clearError();
