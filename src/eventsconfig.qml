@@ -3,13 +3,11 @@ import QtQuick.Controls as Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.kcmutils as KCMUtils
 import org.kde.plasma.private.locallunarcalendar 1.0
 
-Item {
+KCMUtils.SimpleKCM {
     id: root
-
-    implicitWidth: 560
-    implicitHeight: 500
 
     property string editingId: ""
     property string formName: ""
@@ -121,8 +119,7 @@ Item {
     }
 
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: Kirigami.Units.largeSpacing
+        Layout.fillWidth: true
         spacing: Kirigami.Units.largeSpacing
 
         Controls.Label {
@@ -148,7 +145,6 @@ Item {
 
             currentIndex: root.editingForm ? 1 : 0
             Layout.fillWidth: true
-            Layout.fillHeight: true
 
             ColumnLayout {
                 spacing: Kirigami.Units.smallSpacing
@@ -157,8 +153,8 @@ Item {
                     id: eventList
 
                     Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.minimumHeight: 220
+                    // 页面整体可滚动（SimpleKCM），列表随内容增长、超过 18 个网格单位后由页面滚动。
+                    implicitHeight: Math.max(Kirigami.Units.gridUnit * 6, Math.min(contentHeight, Kirigami.Units.gridUnit * 18))
                     clip: true
                     spacing: 1
                     model: eventsModel
@@ -282,8 +278,7 @@ Item {
                     id: formArea
 
                     Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.minimumHeight: editorForm.implicitHeight
+                    implicitHeight: editorForm.implicitHeight
 
                     Kirigami.FormLayout {
                         id: editorForm
@@ -465,6 +460,8 @@ Item {
         modal: true
         title: "删除事件"
         standardButtons: Controls.Dialog.Yes | Controls.Dialog.No
+        // 固定内容宽度，避免 WordWrap 文本与对话框宽度互相影响产生绑定循环。
+        implicitWidth: Kirigami.Units.gridUnit * 20
         contentItem: Controls.Label {
             text: "确定删除“" + root.pendingDeleteName + "”吗？"
             wrapMode: Text.WordWrap
@@ -479,6 +476,8 @@ Item {
         modal: true
         title: "恢复系统预置"
         standardButtons: Controls.Dialog.Yes | Controls.Dialog.No
+        // 固定内容宽度，避免 WordWrap 文本与对话框宽度互相影响产生绑定循环。
+        implicitWidth: Kirigami.Units.gridUnit * 20
         contentItem: Controls.Label {
             text: "这会删除用户事件文件，并重新使用系统预置事件。确定继续吗？"
             wrapMode: Text.WordWrap
