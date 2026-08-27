@@ -66,6 +66,17 @@ systemctl --user restart plasma-plasmashell.service
 
 放在 `~/.local/share/lunarcalendar/` 下的同名文件优先于系统文件，可用于本地调整配色或修订调休数据。
 
+## 数据来源
+
+- **调休与法定节假日**：`data/workdays/YYYY.json` 中的安排以国务院办公厅发布的节假日通知为准。当前仓库中的 2026 年数据对应《国务院办公厅关于 2026 年部分节假日安排的通知》（国办发明电〔2025〕7 号）。
+  - [中国政府网：国务院办公厅关于 2026 年部分节假日安排的通知](https://www.gov.cn/zhengce/content/202511/content_7047090.htm)
+  - [2025 年第 32 号国务院公报（PDF）](https://www.gov.cn/gongbao/2025/issue_12406/material/gwygb202532.pdf)
+- **农历日期**：`src/lunarconverter.cpp` 内置 1900–2100 年农历数据表。数据表与 [overtrue/chinese-calendar](https://github.com/overtrue/chinese-calendar) 中的公开实现一致，该项目采用 MIT License，相关许可文本见其 [LICENSE](https://github.com/overtrue/chinese-calendar/blob/master/LICENSE)。
+- **节气**：`src/solarterms.cpp` 使用固定节气偏移量和回归年长度进行本地计算，算法形式参考公开的 [calendar.js 节气实现](https://gist.github.com/boyxuper/5737431)。
+- **节日名称与自定义事件**：节日名称由项目内置规则提供；自定义事件由用户在设置中创建并保存在本机，不来自外部服务。
+
+上述数据和计算均随插件本地提供，运行时不会访问这些链接或请求网络服务。
+
 ## 打包
 
 推送 `v0.1.0` 形式的版本标签会触发 GitHub Actions 自动构建并发布 DEB 包。
