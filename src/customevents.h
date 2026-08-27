@@ -30,6 +30,7 @@ struct CustomEvent {
     QString id;
     QDate date;
     QString name;
+    QString description;
     QString color;
     RepeatType repeatType = RepeatType::None;
     int repeatInterval = 1;

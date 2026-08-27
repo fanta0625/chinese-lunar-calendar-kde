@@ -8,6 +8,9 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonParseError>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -31,12 +34,14 @@ CustomEvent makeEvent(const QString &id,
                       const QString &name,
                       CustomEvent::RepeatType repeatType = CustomEvent::RepeatType::None,
                       int repeatInterval = 1,
-                      CustomEvent::RepeatUnit repeatUnit = CustomEvent::RepeatUnit::Day)
+                      CustomEvent::RepeatUnit repeatUnit = CustomEvent::RepeatUnit::Day,
+                      const QString &description = QString())
 {
     CustomEvent event;
     event.id = id;
     event.date = date;
     event.name = name;
+    event.description = description;
     event.color = QStringLiteral("#8e24aa");
     event.repeatType = repeatType;
     event.repeatInterval = repeatInterval;
@@ -66,7 +71,11 @@ private Q_SLOTS:
     void emptyUserFileBlocksSystemDefaults();
     void expandsRecurringEvents();
     void reloadsWhenFileChanges();
+    void readsVersionTwoWithoutDescription();
+    void readsVersionThreeDescriptions();
+    void writesVersionThreeDescriptions();
     void rejectsInvalidData();
+    void rejectsInvalidDescriptions();
     void rejectsInvalidRecurrence();
     void resetsToSystemDefaults();
 };
@@ -91,6 +100,7 @@ void CustomEventsTest::usesSystemFileUntilFirstEdit()
     QVERIFY(events.source() == CustomEvents::Source::System);
     QCOMPARE(events.events().size(), 1);
     QCOMPARE(events.events().first().name, QStringLiteral("系统事件"));
+    QCOMPARE(events.events().first().description, QString());
 
     QList<CustomEvent> editedEvents = events.events();
     editedEvents.append(makeEvent(QStringLiteral("user-event"), QDate(2026, 12, 1), QStringLiteral("用户事件")));
@@ -280,6 +290,103 @@ void CustomEventsTest::reloadsWhenFileChanges()
     QCOMPARE(events.events().first().name, QStringLiteral("更新后的系统事件"));
 }
 
+void CustomEventsTest::readsVersionTwoWithoutDescription()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString userPath = directory.filePath(QStringLiteral("user/lunarcalendar/events.json"));
+    const QString systemPath = directory.filePath(QStringLiteral("system/lunarcalendar/events.json"));
+    QVERIFY(writeFile(systemPath, R"({
+        "schemaVersion": 2,
+        "events": [
+            {
+                "id": "legacy-event",
+                "date": "2026-10-01",
+                "name": "旧版事件",
+                "color": "#8e24aa",
+                "recurrence": {"type": "none", "interval": 1, "unit": "day"}
+            }
+        ]
+    })"));
+
+    CustomEvents events(userPath, systemPath);
+    QString error;
+    QVERIFY2(events.reloadIfChanged(&error), qPrintable(error));
+    QCOMPARE(events.events().size(), 1);
+    QCOMPARE(events.events().first().description, QString());
+}
+
+void CustomEventsTest::readsVersionThreeDescriptions()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString userPath = directory.filePath(QStringLiteral("user/lunarcalendar/events.json"));
+    const QString systemPath = directory.filePath(QStringLiteral("system/lunarcalendar/events.json"));
+    QVERIFY(writeFile(systemPath, R"({
+        "schemaVersion": 3,
+        "events": [
+            {
+                "id": "with-description",
+                "date": "2026-10-01",
+                "name": "有详情",
+                "description": "准备礼物\n写卡片",
+                "color": "#8e24aa",
+                "recurrence": {"type": "none", "interval": 1, "unit": "day"}
+            },
+            {
+                "id": "without-description",
+                "date": "2026-10-02",
+                "name": "无详情",
+                "color": "#8e24aa",
+                "recurrence": {"type": "none", "interval": 1, "unit": "day"}
+            }
+        ]
+    })"));
+
+    CustomEvents events(userPath, systemPath);
+    QString error;
+    QVERIFY2(events.reloadIfChanged(&error), qPrintable(error));
+    QCOMPARE(events.events().size(), 2);
+    QCOMPARE(events.events().at(0).description, QStringLiteral("准备礼物\n写卡片"));
+    QCOMPARE(events.events().at(1).description, QString());
+}
+
+void CustomEventsTest::writesVersionThreeDescriptions()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString userPath = directory.filePath(QStringLiteral("user/lunarcalendar/events.json"));
+    const QString systemPath = directory.filePath(QStringLiteral("system/lunarcalendar/events.json"));
+    CustomEvents events(userPath, systemPath);
+    QString error;
+    const CustomEvent event = makeEvent(QStringLiteral("with-description"),
+                                         QDate(2026, 10, 1),
+                                         QStringLiteral("有详情"),
+                                         CustomEvent::RepeatType::None,
+                                         1,
+                                         CustomEvent::RepeatUnit::Day,
+                                         QStringLiteral("准备礼物\n写卡片"));
+    QVERIFY2(events.saveUserEvents({event}, &error), qPrintable(error));
+
+    QFile file(userPath);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QJsonParseError parseError;
+    const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
+    QVERIFY2(parseError.error == QJsonParseError::NoError, qPrintable(parseError.errorString()));
+    QCOMPARE(document.object().value(QStringLiteral("schemaVersion")).toInt(), 3);
+    const QJsonArray serializedEvents = document.object().value(QStringLiteral("events")).toArray();
+    QCOMPARE(serializedEvents.size(), 1);
+    QCOMPARE(serializedEvents.first().toObject().value(QStringLiteral("description")).toString(),
+             QStringLiteral("准备礼物\n写卡片"));
+
+    CustomEvents reloaded(userPath, systemPath);
+    QVERIFY2(reloaded.reloadIfChanged(&error), qPrintable(error));
+    QCOMPARE(reloaded.events().first().description, QStringLiteral("准备礼物\n写卡片"));
+}
+
 void CustomEventsTest::rejectsInvalidData()
 {
     QTemporaryDir directory;
@@ -301,6 +408,34 @@ void CustomEventsTest::rejectsInvalidData()
     QVERIFY(events.events().isEmpty());
     QVERIFY(!events.saveUserEvents({makeEvent(QStringLiteral("new-event"), QDate(2026, 10, 1), QStringLiteral("新事件"))}, &error));
     QVERIFY(!QFileInfo(userPath).exists());
+}
+
+void CustomEventsTest::rejectsInvalidDescriptions()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString userPath = directory.filePath(QStringLiteral("user/lunarcalendar/events.json"));
+    const QString systemPath = directory.filePath(QStringLiteral("system/lunarcalendar/events.json"));
+    QVERIFY(writeFile(systemPath, R"({
+        "schemaVersion": 3,
+        "events": [
+            {
+                "id": "bad-description",
+                "date": "2026-10-01",
+                "name": "坏详情",
+                "description": 42,
+                "color": "#8e24aa",
+                "recurrence": {"type": "none", "interval": 1, "unit": "day"}
+            }
+        ]
+    })"));
+
+    CustomEvents events(userPath, systemPath);
+    QString error;
+    QVERIFY(!events.reloadIfChanged(&error));
+    QVERIFY(error.contains(QStringLiteral("详情")));
+    QVERIFY(events.events().isEmpty());
 }
 
 void CustomEventsTest::rejectsInvalidRecurrence()

@@ -154,8 +154,11 @@ QList<EventData> LunarCalendarPlugin::eventsForDate(const DateInfo &info, const 
 
     for (const CustomEvent &customEvent : m_customEvents.eventsForDate(date)) {
         EventData event;
+        const QString description = customEvent.description.trimmed();
         event.setTitle(customEvent.name);
-        event.setDescription(QStringLiteral("岁时自定义事件"));
+        event.setDescription(description.isEmpty()
+                                 ? QStringLiteral("岁时自定义事件")
+                                 : description);
         event.setStartDateTime(date.startOfDay());
         event.setEndDateTime(date.startOfDay());
         event.setIsAllDay(true);

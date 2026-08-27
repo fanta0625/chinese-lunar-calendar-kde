@@ -23,8 +23,10 @@
 
 namespace {
 
-constexpr int CurrentSchemaVersion = 2;
+constexpr int CurrentSchemaVersion = 3;
 constexpr int LegacySchemaVersion = 1;
+constexpr int RecurrenceSchemaVersion = 2;
+constexpr int DescriptionSchemaVersion = 3;
 const QString RelativePath = QStringLiteral("lunarcalendar/events.json");
 
 bool isValidColor(const QString &value)
@@ -492,7 +494,9 @@ bool CustomEvents::loadFile(const QString &path, QList<CustomEvent> *events, QSt
     const QJsonValue schemaVersionValue = root.value(QStringLiteral("schemaVersion"));
     const double schemaVersionNumber = schemaVersionValue.toDouble();
     if (!schemaVersionValue.isDouble() || !std::isfinite(schemaVersionNumber)
-        || (schemaVersionNumber != LegacySchemaVersion && schemaVersionNumber != CurrentSchemaVersion)) {
+        || (schemaVersionNumber != LegacySchemaVersion
+            && schemaVersionNumber != RecurrenceSchemaVersion
+            && schemaVersionNumber != CurrentSchemaVersion)) {
         setError(error, QStringLiteral("不支持的事件文件版本"));
         return false;
     }
@@ -529,6 +533,15 @@ bool CustomEvents::loadFile(const QString &path, QList<CustomEvent> *events, QSt
         event.date = QDate::fromString(dateText, Qt::ISODate);
         event.name = nameValue.toString().trimmed();
         event.color = colorValue.toString().trimmed();
+
+        if (schemaVersion >= DescriptionSchemaVersion) {
+            const QJsonValue descriptionValue = item.value(QStringLiteral("description"));
+            if (!descriptionValue.isUndefined() && !descriptionValue.isString()) {
+                setError(error, QStringLiteral("第 %1 个事件详情字段类型无效").arg(index + 1));
+                return false;
+            }
+            event.description = descriptionValue.isString() ? descriptionValue.toString().trimmed() : QString();
+        }
 
         if (schemaVersion == LegacySchemaVersion) {
             const QJsonValue repeatValue = item.value(QStringLiteral("repeatYearly"));
@@ -600,6 +613,9 @@ QByteArray CustomEvents::serializeEvents(const QList<CustomEvent> &eventsToSeria
         item.insert(QStringLiteral("id"), event.id);
         item.insert(QStringLiteral("date"), event.date.toString(Qt::ISODate));
         item.insert(QStringLiteral("name"), event.name);
+        if (!event.description.isEmpty()) {
+            item.insert(QStringLiteral("description"), event.description);
+        }
         item.insert(QStringLiteral("color"), event.color);
 
         QJsonObject recurrence;

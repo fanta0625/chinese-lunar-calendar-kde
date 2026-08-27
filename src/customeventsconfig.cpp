@@ -14,6 +14,7 @@ namespace {
 
 bool eventFromInput(const QString &id,
                     const QString &name,
+                    const QString &description,
                     const QString &dateText,
                     const QString &color,
                     const QString &repeatTypeText,
@@ -35,6 +36,7 @@ bool eventFromInput(const QString &id,
     result.id = id.trimmed();
     result.date = parsedDate;
     result.name = name.trimmed();
+    result.description = description.trimmed();
     result.color = color.trimmed();
     if (!CustomEvents::repeatTypeFromString(repeatTypeText, &result.repeatType)) {
         if (error) {
@@ -112,6 +114,8 @@ QVariant CustomEventsModel::data(const QModelIndex &index, int role) const
         return event.date.toString(Qt::ISODate);
     case NameRole:
         return event.name;
+    case DescriptionRole:
+        return event.description;
     case ColorRole:
         return event.color;
     case RepeatTypeRole:
@@ -131,6 +135,7 @@ QHash<int, QByteArray> CustomEventsModel::roleNames() const
         {IdRole, "id"},
         {DateRole, "date"},
         {NameRole, "name"},
+        {DescriptionRole, "description"},
         {ColorRole, "color"},
         {RepeatTypeRole, "repeatType"},
         {RepeatIntervalRole, "repeatInterval"},
@@ -163,6 +168,7 @@ bool CustomEventsModel::reload()
 }
 
 bool CustomEventsModel::addEvent(const QString &name,
+                                 const QString &description,
                                  const QString &date,
                                  const QString &color,
                                  const QString &repeatType,
@@ -173,6 +179,7 @@ bool CustomEventsModel::addEvent(const QString &name,
     QString error;
     if (!eventFromInput(QUuid::createUuid().toString(QUuid::WithoutBraces),
                         name,
+                        description,
                         date,
                         color,
                         repeatType,
@@ -191,6 +198,7 @@ bool CustomEventsModel::addEvent(const QString &name,
 
 bool CustomEventsModel::updateEvent(const QString &id,
                                     const QString &name,
+                                    const QString &description,
                                     const QString &date,
                                     const QString &color,
                                     const QString &repeatType,
@@ -210,6 +218,7 @@ bool CustomEventsModel::updateEvent(const QString &id,
     QString error;
     if (!eventFromInput(normalizedId,
                         name,
+                        description,
                         date,
                         color,
                         repeatType,

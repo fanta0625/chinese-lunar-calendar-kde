@@ -11,6 +11,7 @@ KCMUtils.SimpleKCM {
 
     property string editingId: ""
     property string formName: ""
+    property string formDescription: ""
     property string formDate: ""
     property string formColor: "#8e24aa"
     property string formRepeatType: "none"
@@ -31,6 +32,7 @@ KCMUtils.SimpleKCM {
     function openAdd() {
         editingId = ""
         formName = ""
+        formDescription = ""
         formDate = isoDate(new Date())
         formColor = "#8e24aa"
         formRepeatType = "none"
@@ -40,9 +42,10 @@ KCMUtils.SimpleKCM {
         editingForm = true
     }
 
-    function openEdit(eventId, eventName, eventDate, eventColor, repeatType, repeatInterval, repeatUnit) {
+    function openEdit(eventId, eventName, eventDescription, eventDate, eventColor, repeatType, repeatInterval, repeatUnit) {
         editingId = eventId
         formName = eventName
+        formDescription = eventDescription
         formDate = eventDate
         formColor = eventColor
         formRepeatType = repeatType
@@ -88,6 +91,7 @@ KCMUtils.SimpleKCM {
         var saved
         if (editingId.length === 0) {
             saved = eventsModel.addEvent(formName,
+                                         formDescription,
                                          formDate,
                                          formColor,
                                          formRepeatType,
@@ -96,6 +100,7 @@ KCMUtils.SimpleKCM {
         } else {
             saved = eventsModel.updateEvent(editingId,
                                             formName,
+                                            formDescription,
                                             formDate,
                                             formColor,
                                             formRepeatType,
@@ -202,6 +207,7 @@ KCMUtils.SimpleKCM {
                                 display: Controls.AbstractButton.IconOnly
                                 onClicked: root.openEdit(model.id,
                                                          model.name,
+                                                         model.description,
                                                          model.date,
                                                          model.color,
                                                          model.repeatType,
@@ -222,6 +228,7 @@ KCMUtils.SimpleKCM {
 
                         onClicked: root.openEdit(model.id,
                                                  model.name,
+                                                 model.description,
                                                  model.date,
                                                  model.color,
                                                  model.repeatType,
@@ -296,6 +303,25 @@ KCMUtils.SimpleKCM {
                             placeholderText: "例如：爸爸生日"
                             onTextEdited: root.formName = text
                             Layout.fillWidth: true
+                        }
+
+                        Controls.ScrollView {
+                            id: descriptionView
+
+                            Kirigami.FormData.label: "详情"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 5
+
+                            Controls.TextArea {
+                                id: descriptionField
+
+                                width: descriptionView.availableWidth
+                                text: root.formDescription
+                                placeholderText: "可选，例如：准备礼物、联系某人"
+                                wrapMode: TextEdit.Wrap
+                                onTextChanged: root.formDescription = text
+                                height: Math.max(descriptionView.availableHeight, implicitHeight)
+                            }
                         }
 
                         RowLayout {

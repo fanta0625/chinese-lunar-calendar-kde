@@ -23,6 +23,7 @@ public:
         IdRole = Qt::UserRole + 1,
         DateRole,
         NameRole,
+        DescriptionRole,
         ColorRole,
         RepeatTypeRole,
         RepeatIntervalRole,
@@ -42,6 +43,7 @@ public:
 
     Q_INVOKABLE bool reload();
     Q_INVOKABLE bool addEvent(const QString &name,
+                              const QString &description,
                               const QString &date,
                               const QString &color,
                               const QString &repeatType,
@@ -49,6 +51,7 @@ public:
                               const QString &repeatUnit);
     Q_INVOKABLE bool updateEvent(const QString &id,
                                  const QString &name,
+                                 const QString &description,
                                  const QString &date,
                                  const QString &color,
                                  const QString &repeatType,
