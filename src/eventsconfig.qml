@@ -9,7 +9,7 @@ Item {
     id: root
 
     implicitWidth: 560
-    implicitHeight: 500
+    implicitHeight: 620
 
     property string editingId: ""
     property string formName: ""
@@ -254,15 +254,12 @@ Item {
         }
     }
 
-    Kirigami.OverlaySheet {
+    Kirigami.Dialog {
         id: editorSheet
 
-        parent: root
-        width: Math.min(root.width, Kirigami.Units.gridUnit * 30)
-        header: Kirigami.Heading {
-            text: root.editingId.length === 0 ? "添加事件" : "编辑事件"
-            level: 2
-        }
+        preferredWidth: Math.min(root.width, Kirigami.Units.gridUnit * 30)
+        preferredHeight: Kirigami.Units.gridUnit * 32
+        title: root.editingId.length === 0 ? "添加事件" : "编辑事件"
 
         ColumnLayout {
             width: editorSheet.width - Kirigami.Units.largeSpacing * 2
