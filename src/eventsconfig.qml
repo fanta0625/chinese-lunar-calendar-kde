@@ -305,20 +305,28 @@ KCMUtils.SimpleKCM {
                             Layout.fillWidth: true
                         }
 
-                        Controls.TextArea {
-                            id: descriptionField
+                        Controls.ScrollView {
+                            id: descriptionView
 
                             Kirigami.FormData.label: "详情"
                             Layout.fillWidth: true
-                            // 固定高度：内容超出时由 TextArea 自身滚动，避免行高随内容变化挤压其他行。
                             implicitHeight: Kirigami.Units.gridUnit * 5
-                            text: root.formDescription
-                            placeholderText: "可选，例如：准备礼物、联系某人"
-                            wrapMode: TextEdit.Wrap
-                            onTextChanged: root.formDescription = text
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * 5
+                            Layout.minimumHeight: Kirigami.Units.gridUnit * 5
+                            Layout.maximumHeight: Kirigami.Units.gridUnit * 5
+                            contentWidth: availableWidth
+                            Controls.ScrollBar.horizontal.policy: Controls.ScrollBar.AlwaysOff
+                            Controls.ScrollBar.vertical.policy: Controls.ScrollBar.AlwaysOn
 
-                            // TextArea 默认不显示滚动条，内容溢出时挂上才可见。
-                            Controls.ScrollBar.vertical: Controls.ScrollBar {}
+                            Controls.TextArea {
+                                id: descriptionField
+
+                                width: descriptionView.availableWidth
+                                text: root.formDescription
+                                placeholderText: "可选，例如：准备礼物、联系某人"
+                                wrapMode: TextEdit.Wrap
+                                onTextChanged: root.formDescription = text
+                            }
                         }
 
                         RowLayout {
