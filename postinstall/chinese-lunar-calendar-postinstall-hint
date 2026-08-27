@@ -3,17 +3,17 @@
 # SPDX-FileCopyrightText: 2026
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-# 岁时（Suishi）安装后一次性提示。
+# 中国农历安装后一次性提示。
 #
-# 由 /etc/xdg/autostart/suishi-postinstall-hint.desktop 在安装后的首次
+# 由 /etc/xdg/autostart/chinese-lunar-calendar-postinstall-hint.desktop 在安装后的首次
 # 登录时执行一次：弹出一条 Plasma 通知，用户点击“立即启用”后自动把插件
 # 写入数字时钟的 enabledCalendarPlugins 配置并重启 plasmashell。
-# 提示只显示一次（以 ~/.config/suishi/postinstall-hint-shown 为标记）。
+# 提示只显示一次（以 ~/.config/chinese-lunar-calendar/postinstall-hint-shown 为标记）。
 #
 # 登录早期通知服务（由 plasmashell 提供）可能尚未就绪，因此发送前先等
 # 待 org.freedesktop.Notifications 出现在会话总线上；只有通知真正被通知
 # 服务接受后才写入标记，否则本次登录不标记、下次登录重试。诊断信息写入
-# ~/.config/suishi/postinstall-hint.log。
+# ~/.config/chinese-lunar-calendar/postinstall-hint.log。
 
 import datetime
 import os
@@ -22,14 +22,15 @@ import subprocess
 import time
 from pathlib import Path
 
-PLUGIN_ID = "locallunarcalendar"
+PLUGIN_ID = "chineselunarcalendar"
+LEGACY_PLUGIN_IDS = ("locallunarcalendar",)
 KEY = "enabledCalendarPlugins"
 
 # 等待通知服务出现的最长时间（秒），可用环境变量覆盖以便测试。
-WAIT_SECONDS = int(os.environ.get("SUISHI_HINT_WAIT_SECONDS", "120"))
+WAIT_SECONDS = int(os.environ.get("CHINESE_LUNAR_CALENDAR_HINT_WAIT_SECONDS", "120"))
 
 CONFIG_PATH = Path.home() / ".config" / "plasma-org.kde.plasma.desktop-appletsrc"
-FLAG_DIR = Path.home() / ".config" / "suishi"
+FLAG_DIR = Path.home() / ".config" / "chinese-lunar-calendar"
 FLAG_PATH = FLAG_DIR / "postinstall-hint-shown"
 LOG_PATH = FLAG_DIR / "postinstall-hint.log"
 
@@ -72,7 +73,7 @@ def wait_for_notification_service():
 def notify(summary, body, actions=None, timeout=60000):
     cmd = [
         "notify-send",
-        "--app-name=岁时",
+        "--app-name=中国农历",
         "--icon=office-calendar",
         "--expire-time",
         str(timeout),
@@ -129,6 +130,16 @@ def plugin_enabled(lines, base):
     return PLUGIN_ID in [v.strip() for v in value.split(",") if v.strip()]
 
 
+def normalized_plugin_ids(ids):
+    normalized = []
+    for plugin_id in ids:
+        if plugin_id in LEGACY_PLUGIN_IDS:
+            plugin_id = PLUGIN_ID
+        if plugin_id not in normalized:
+            normalized.append(plugin_id)
+    return normalized
+
+
 def already_enabled():
     lines = read_lines()
     bases = digital_clock_bases(lines)
@@ -148,9 +159,11 @@ def enable_in_config(lines, bases):
         else:
             value = line.split("=", 1)[1]
             ids = [v.strip() for v in value.split(",") if v.strip()]
-            if PLUGIN_ID not in ids:
-                ids.append(PLUGIN_ID)
-                lines[lines.index(line)] = "{}={}".format(KEY, ",".join(ids))
+            normalized_ids = normalized_plugin_ids(ids)
+            if PLUGIN_ID not in normalized_ids:
+                normalized_ids.append(PLUGIN_ID)
+            if normalized_ids != ids:
+                lines[lines.index(line)] = "{}={}".format(KEY, ",".join(normalized_ids))
                 changed = True
     if changed:
         CONFIG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -201,9 +214,9 @@ def main():
         return
 
     result = notify(
-        "岁时：农历日历插件已安装",
+        "中国农历：插件已安装",
         "点击“立即启用”即可在系统日历中显示农历；\n"
-        "也可以稍后在 数字时钟设置 → 日历 中勾选“岁时”。",
+        "也可以稍后在 数字时钟设置 → 日历 中勾选“中国农历”。",
         actions={"enable": "立即启用"},
     )
 
@@ -222,8 +235,8 @@ def main():
         bases = digital_clock_bases(lines)
         if not bases:
             notify(
-                "岁时：未找到数字时钟",
-                "面板上没有数字时钟小部件，请在添加后再手动启用“岁时”。",
+                "中国农历：未找到数字时钟",
+                "面板上没有数字时钟小部件，请在添加后再手动启用“中国农历”。",
                 timeout=10000,
             )
             return
@@ -231,7 +244,7 @@ def main():
         enable_in_config(lines, bases)
         start_plasmashell(how)
         notify(
-            "岁时：已启用",
+            "中国农历：已启用",
             "系统日历现在会显示农历、节气与调休信息。",
             timeout=10000,
         )

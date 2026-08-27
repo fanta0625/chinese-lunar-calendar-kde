@@ -1,6 +1,6 @@
-# 岁时（Suishi）
+# Chinese Lunar Calendar for KDE
 
-KDE Plasma 6 的农历日历扩展。它不额外创建日历窗口，而是直接增强系统数字时钟的月历：在每个阳历日期下方显示农历、节气、节日与调休信息。
+KDE Plasma 6 的中国农历日历插件。它不额外创建日历窗口，而是直接增强系统数字时钟的月历：在每个阳历日期下方显示农历、节气、节日与调休信息。
 
 ## 功能
 
@@ -43,11 +43,11 @@ systemctl --user restart plasma-plasmashell.service
 
    <img src="screenshot/选择配置.png" width="400">
 
-2. 在左侧选择"日历"，勾选"岁时"
+2. 在左侧选择"日历"，勾选"中国农历"
 
-   <img src="screenshot/选择岁时.png" width="400">
+   <img src="screenshot/选择中国农历.png" width="400">
 
-启用后配置对话框会出现"岁时"页签，用于管理显示设置与自定义事件。
+启用后配置对话框会出现"中国农历"页签，用于管理显示设置与自定义事件。
 
 > 安装后第一次登录会弹出一次性提示，点击"立即启用"即可自动完成上述步骤。
 

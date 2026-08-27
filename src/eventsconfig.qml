@@ -4,7 +4,7 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCMUtils
-import org.kde.plasma.private.locallunarcalendar 1.0
+import org.kde.plasma.private.chineselunarcalendar 1.0
 
 KCMUtils.SimpleKCM {
     id: root
@@ -152,7 +152,7 @@ KCMUtils.SimpleKCM {
         Controls.Label {
             text: root.editingForm
                   ? (root.editingId.length === 0 ? "添加事件" : "编辑事件")
-                  : "岁时设置"
+                  : "中国农历设置"
             font.bold: true
             Layout.fillWidth: true
         }

@@ -8,7 +8,7 @@
 #include <QHash>
 #include <QString>
 
-// 岁时日历事件的配色。默认值内置，可被
+// 中国农历日历事件的配色。默认值内置，可被
 // lunarcalendar/eventcolors.json（XDG 数据目录，用户级覆盖优先）替换。
 class EventColors
 {

@@ -5,10 +5,10 @@
 
 #pragma once
 
-class SuishiSettings final
+class ChineseLunarCalendarSettings final
 {
 public:
-    SuishiSettings() = delete;
+    ChineseLunarCalendarSettings() = delete;
 
     static bool showEnglishDate();
     static void setShowEnglishDate(bool enabled);

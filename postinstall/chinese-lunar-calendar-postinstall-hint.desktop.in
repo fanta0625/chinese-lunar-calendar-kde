@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Chinese Lunar Calendar for KDE Post-Install Hint
+Name[zh_CN]=中国农历安装提示
+Comment=One-time hint for enabling the Chinese Lunar Calendar for KDE plugin
+Comment[zh_CN]=中国农历插件的一次性启用提示
+Exec=@KDE_INSTALL_FULL_LIBEXECDIR@/chinese-lunar-calendar-postinstall-hint
+Icon=office-calendar
+OnlyShowIn=KDE;
+NoDisplay=true

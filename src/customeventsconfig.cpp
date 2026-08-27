@@ -5,7 +5,7 @@
 
 #include "customeventsconfig.h"
 
-#include "suishisettings.h"
+#include "chineselunarcalendarsettings.h"
 
 #include <algorithm>
 #include <iterator>
@@ -90,7 +90,7 @@ bool eventFromInput(const QString &id,
 
 CustomEventsModel::CustomEventsModel(QObject *parent)
     : QAbstractListModel(parent)
-    , m_showEnglishDate(SuishiSettings::showEnglishDate())
+    , m_showEnglishDate(ChineseLunarCalendarSettings::showEnglishDate())
 {
     reload();
 }
@@ -172,7 +172,7 @@ void CustomEventsModel::setShowEnglishDate(bool enabled)
         return;
     }
 
-    SuishiSettings::setShowEnglishDate(enabled);
+    ChineseLunarCalendarSettings::setShowEnglishDate(enabled);
     m_showEnglishDate = enabled;
     Q_EMIT showEnglishDateChanged();
 }

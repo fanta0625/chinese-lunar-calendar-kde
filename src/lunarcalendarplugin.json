@@ -1,9 +1,9 @@
 {
     "KPlugin": {
-        "Name": "Suishi",
-        "Name[zh_CN]": "岁时",
-        "Description": "Show local Chinese lunar dates and China workday adjustments below Gregorian dates.",
-        "Description[zh_CN]": "在阳历日期下方显示本地农历、中国节气与调休信息。",
+        "Name": "Chinese Lunar Calendar for KDE",
+        "Name[zh_CN]": "中国农历",
+        "Description": "Show Chinese lunar dates, festivals, solar terms, and workday adjustments in the KDE Plasma calendar.",
+        "Description[zh_CN]": "在 KDE Plasma 日历中显示中国农历、节气、节日与调休信息。",
         "Icon": "office-calendar"
     },
     "X-KDE-PlasmaCalendar-ConfigUi": "eventsconfig.qml"

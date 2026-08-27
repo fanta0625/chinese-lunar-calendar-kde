@@ -3,7 +3,7 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-#include "suishisettings.h"
+#include "chineselunarcalendarsettings.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -18,7 +18,7 @@ QString settingsFilePath()
     if (configLocation.isEmpty()) {
         configLocation = QDir::homePath() + QStringLiteral("/.config");
     }
-    return QDir(configLocation).filePath(QStringLiteral("suishi/settings.ini"));
+    return QDir(configLocation).filePath(QStringLiteral("chinese-lunar-calendar/settings.ini"));
 }
 
 void ensureSettingsDirectory(const QString &filePath)
@@ -28,7 +28,7 @@ void ensureSettingsDirectory(const QString &filePath)
 
 } // namespace
 
-bool SuishiSettings::showEnglishDate()
+bool ChineseLunarCalendarSettings::showEnglishDate()
 {
     QSettings settings(settingsFilePath(), QSettings::IniFormat);
     settings.beginGroup(QStringLiteral("Appearance"));
@@ -37,7 +37,7 @@ bool SuishiSettings::showEnglishDate()
     return enabled;
 }
 
-void SuishiSettings::setShowEnglishDate(bool enabled)
+void ChineseLunarCalendarSettings::setShowEnglishDate(bool enabled)
 {
     const QString filePath = settingsFilePath();
     ensureSettingsDirectory(filePath);

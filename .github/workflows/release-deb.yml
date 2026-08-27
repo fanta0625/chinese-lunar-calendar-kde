@@ -57,7 +57,7 @@ jobs:
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/usr \
-            -DSUISHI_VERSION="${VERSION}" 2>&1 | tee configure.log
+            -DCHINESE_LUNAR_CALENDAR_VERSION="${VERSION}" 2>&1 | tee configure.log
           configure_status=${PIPESTATUS[0]}
           set -e
           if [[ ${configure_status} -ne 0 ]]; then
@@ -107,7 +107,7 @@ jobs:
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: suishi-deb-${{ github.ref_name }}
+          name: chinese-lunar-calendar-kde-deb-${{ github.ref_name }}
           path: |
             dist/*.deb
             dist/SHA256SUMS
@@ -116,7 +116,7 @@ jobs:
       - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: 岁时 ${{ github.ref_name }}
+          name: Chinese Lunar Calendar for KDE ${{ github.ref_name }}
           generate_release_notes: true
           files: |
             dist/*.deb
