@@ -24,6 +24,19 @@ KCMUtils.SimpleKCM {
     property var repeatUnitLabels: ["天", "周", "月", "年"]
     property string pendingDeleteId: ""
     property string pendingDeleteName: ""
+    property bool cfg_showEnglishDate: false
+
+    signal configurationChanged()
+
+    function saveConfig() {
+        // Event edits are committed by CustomEventsModel immediately; the
+        // display setting is staged until the host invokes saveConfig().
+        eventsModel.showEnglishDate = root.cfg_showEnglishDate
+    }
+
+    function loadConfig() {
+        root.cfg_showEnglishDate = eventsModel.showEnglishDate
+    }
 
     function isoDate(date) {
         return Qt.formatDate(date, "yyyy-MM-dd")
@@ -108,6 +121,7 @@ KCMUtils.SimpleKCM {
                                             formRepeatUnit)
         }
         if (saved) {
+            root.configurationChanged()
             closeEditor()
         }
     }
@@ -123,6 +137,14 @@ KCMUtils.SimpleKCM {
         id: eventsModel
     }
 
+    Component.onCompleted: root.loadConfig()
+
+    onParentChanged: {
+        if (parent) {
+            root.loadConfig()
+        }
+    }
+
     ColumnLayout {
         Layout.fillWidth: true
         spacing: Kirigami.Units.largeSpacing
@@ -130,7 +152,44 @@ KCMUtils.SimpleKCM {
         Controls.Label {
             text: root.editingForm
                   ? (root.editingId.length === 0 ? "添加事件" : "编辑事件")
-                  : "自定义事件"
+                  : "岁时设置"
+            font.bold: true
+            Layout.fillWidth: true
+        }
+
+        ColumnLayout {
+            visible: !root.editingForm
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.smallSpacing
+
+            Controls.Label {
+                text: "显示设置"
+                font.bold: true
+                Layout.fillWidth: true
+            }
+
+            Controls.CheckBox {
+                text: "在悬浮提示中显示英文星期、月份和公历日期"
+                checked: root.cfg_showEnglishDate
+                onToggled: {
+                    if (root.cfg_showEnglishDate === checked) {
+                        return
+                    }
+                    root.cfg_showEnglishDate = checked
+                    root.configurationChanged()
+                }
+                Layout.fillWidth: true
+            }
+        }
+
+        Kirigami.Separator {
+            visible: !root.editingForm
+            Layout.fillWidth: true
+        }
+
+        Controls.Label {
+            visible: !root.editingForm
+            text: "自定义事件"
             font.bold: true
             Layout.fillWidth: true
         }
@@ -142,14 +201,6 @@ KCMUtils.SimpleKCM {
                   : "事件保存在用户文件中。"
             color: Kirigami.Theme.disabledTextColor
             wrapMode: Text.WordWrap
-            Layout.fillWidth: true
-        }
-
-        Controls.CheckBox {
-            visible: !root.editingForm
-            text: "在悬浮提示中显示英文月份和星期"
-            checked: eventsModel.showEnglishDate
-            onToggled: eventsModel.showEnglishDate = checked
             Layout.fillWidth: true
         }
 
@@ -506,7 +557,11 @@ KCMUtils.SimpleKCM {
             wrapMode: Text.WordWrap
             padding: Kirigami.Units.largeSpacing
         }
-        onAccepted: eventsModel.removeEvent(root.pendingDeleteId)
+        onAccepted: {
+            if (eventsModel.removeEvent(root.pendingDeleteId)) {
+                root.configurationChanged()
+            }
+        }
     }
 
     Controls.Dialog {
@@ -522,6 +577,10 @@ KCMUtils.SimpleKCM {
             wrapMode: Text.WordWrap
             padding: Kirigami.Units.largeSpacing
         }
-        onAccepted: eventsModel.resetToSystemDefaults()
+        onAccepted: {
+            if (eventsModel.resetToSystemDefaults()) {
+                root.configurationChanged()
+            }
+        }
     }
 }
