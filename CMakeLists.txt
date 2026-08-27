@@ -28,6 +28,7 @@ add_library(lunarcalendarcore STATIC
     src/eventcolors.cpp
     src/lunarconverter.cpp
     src/solarterms.cpp
+    src/suishisettings.cpp
     src/workdaydata.cpp
 )
 

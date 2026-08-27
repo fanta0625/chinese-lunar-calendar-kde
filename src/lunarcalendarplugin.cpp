@@ -11,12 +11,29 @@
 
 #include <QDateTime>
 #include <QDebug>
+#include <QLocale>
 #include <QStringList>
 #include <qqml.h>
+
+#include "suishisettings.h"
 
 using SubLabel = CalendarEvents::CalendarEventsPlugin::SubLabel;
 using SubLabelPriority = CalendarEvents::CalendarEventsPlugin::SubLabelPriority;
 using EventData = CalendarEvents::EventData;
+
+namespace {
+
+QString englishDateLabel(const QDate &date)
+{
+    const QLocale englishLocale(QLocale::English, QLocale::UnitedStates);
+    return QStringLiteral("%1, %2 %3, %4")
+        .arg(englishLocale.dayName(date.dayOfWeek(), QLocale::LongFormat),
+             englishLocale.monthName(date.month(), QLocale::LongFormat))
+        .arg(date.day())
+        .arg(date.year());
+}
+
+} // namespace
 
 LunarCalendarPlugin::LunarCalendarPlugin(QObject *parent)
     : CalendarEventsPlugin(parent)
@@ -36,6 +53,8 @@ void LunarCalendarPlugin::loadEventsForDateRange(const QDate &startDate, const Q
         return;
     }
 
+    m_showEnglishDate = SuishiSettings::showEnglishDate();
+
     const QString previousCustomEventsError = m_customEvents.errorString();
     QString customEventsError;
     if (!m_customEvents.reloadIfChanged(&customEventsError) && !customEventsError.isEmpty()
@@ -46,7 +65,7 @@ void LunarCalendarPlugin::loadEventsForDateRange(const QDate &startDate, const Q
     for (QDate date = startDate; date <= endDate; date = date.addDays(1)) {
         const DateInfo info = infoForDate(date);
 
-        const SubLabel label = subLabelForDate(info);
+        const SubLabel label = subLabelForDate(info, date);
         if (!label.dayLabel.isEmpty()) {
             labels.insert(date, label);
         }
@@ -73,7 +92,7 @@ LunarCalendarPlugin::DateInfo LunarCalendarPlugin::infoForDate(const QDate &date
     return info;
 }
 
-SubLabel LunarCalendarPlugin::subLabelForDate(const DateInfo &info) const
+SubLabel LunarCalendarPlugin::subLabelForDate(const DateInfo &info, const QDate &date) const
 {
     SubLabel result;
     if (!info.lunar) {
@@ -107,6 +126,10 @@ SubLabel LunarCalendarPlugin::subLabelForDate(const DateInfo &info) const
     }
 
     result.label = tooltipParts.join(QStringLiteral(" · "));
+    if (m_showEnglishDate) {
+        result.label.append(QStringLiteral("\n"));
+        result.label.append(englishDateLabel(date));
+    }
     return result;
 }
 

@@ -5,6 +5,8 @@
 
 #include "customeventsconfig.h"
 
+#include "suishisettings.h"
+
 #include <algorithm>
 #include <iterator>
 
@@ -88,6 +90,7 @@ bool eventFromInput(const QString &id,
 
 CustomEventsModel::CustomEventsModel(QObject *parent)
     : QAbstractListModel(parent)
+    , m_showEnglishDate(SuishiSettings::showEnglishDate())
 {
     reload();
 }
@@ -156,6 +159,22 @@ bool CustomEventsModel::usingSystemDefaults() const
 bool CustomEventsModel::hasUserFile() const
 {
     return m_store.source() == CustomEvents::Source::User;
+}
+
+bool CustomEventsModel::showEnglishDate() const
+{
+    return m_showEnglishDate;
+}
+
+void CustomEventsModel::setShowEnglishDate(bool enabled)
+{
+    if (m_showEnglishDate == enabled) {
+        return;
+    }
+
+    SuishiSettings::setShowEnglishDate(enabled);
+    m_showEnglishDate = enabled;
+    Q_EMIT showEnglishDateChanged();
 }
 
 bool CustomEventsModel::reload()

@@ -37,10 +37,11 @@ private:
     };
 
     DateInfo infoForDate(const QDate &date);
-    CalendarEvents::CalendarEventsPlugin::SubLabel subLabelForDate(const DateInfo &info) const;
+    CalendarEvents::CalendarEventsPlugin::SubLabel subLabelForDate(const DateInfo &info, const QDate &date) const;
     QList<CalendarEvents::EventData> eventsForDate(const DateInfo &info, const QDate &date) const;
 
     WorkdayData m_workdayData;
     EventColors m_colors;
     CustomEvents m_customEvents;
+    bool m_showEnglishDate = false;
 };

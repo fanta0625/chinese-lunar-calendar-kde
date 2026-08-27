@@ -17,6 +17,7 @@ class CustomEventsModel : public QAbstractListModel
     Q_PROPERTY(QString errorString READ errorString NOTIFY errorStringChanged)
     Q_PROPERTY(bool usingSystemDefaults READ usingSystemDefaults NOTIFY sourceChanged)
     Q_PROPERTY(bool hasUserFile READ hasUserFile NOTIFY sourceChanged)
+    Q_PROPERTY(bool showEnglishDate READ showEnglishDate WRITE setShowEnglishDate NOTIFY showEnglishDateChanged)
 
 public:
     enum Role {
@@ -40,6 +41,8 @@ public:
     QString errorString() const;
     bool usingSystemDefaults() const;
     bool hasUserFile() const;
+    bool showEnglishDate() const;
+    void setShowEnglishDate(bool enabled);
 
     Q_INVOKABLE bool reload();
     Q_INVOKABLE bool addEvent(const QString &name,
@@ -64,6 +67,7 @@ public:
 Q_SIGNALS:
     void errorStringChanged();
     void sourceChanged();
+    void showEnglishDateChanged();
 
 private:
     bool saveEvents(const QList<CustomEvent> &events);
@@ -73,4 +77,5 @@ private:
     CustomEvents m_store;
     QList<CustomEvent> m_events;
     QString m_errorString;
+    bool m_showEnglishDate = false;
 };

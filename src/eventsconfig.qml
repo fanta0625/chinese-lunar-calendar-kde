@@ -145,6 +145,14 @@ KCMUtils.SimpleKCM {
             Layout.fillWidth: true
         }
 
+        Controls.CheckBox {
+            visible: !root.editingForm
+            text: "在悬浮提示中显示英文月份和星期"
+            checked: eventsModel.showEnglishDate
+            onToggled: eventsModel.showEnglishDate = checked
+            Layout.fillWidth: true
+        }
+
         StackLayout {
             id: contentStack
 
