@@ -9,7 +9,7 @@ Item {
     id: root
 
     implicitWidth: 560
-    implicitHeight: 620
+    implicitHeight: 500
 
     property string editingId: ""
     property string formName: ""
@@ -18,6 +18,7 @@ Item {
     property string formRepeatType: "none"
     property int formRepeatInterval: 1
     property string formRepeatUnit: "day"
+    property bool editingForm: false
     property var repeatTypeValues: ["none", "daily", "weekly", "monthly", "yearly", "custom"]
     property var repeatTypeLabels: ["不重复", "每天", "每周", "每月", "每年", "自定义"]
     property var repeatUnitValues: ["day", "week", "month", "year"]
@@ -38,7 +39,7 @@ Item {
         formRepeatInterval = 1
         formRepeatUnit = "day"
         eventsModel.clearError()
-        editorSheet.open()
+        editingForm = true
     }
 
     function openEdit(eventId, eventName, eventDate, eventColor, repeatType, repeatInterval, repeatUnit) {
@@ -50,7 +51,7 @@ Item {
         formRepeatInterval = repeatInterval
         formRepeatUnit = repeatUnit
         eventsModel.clearError()
-        editorSheet.open()
+        editingForm = true
     }
 
     function repeatTypeIndex(value) {
@@ -79,6 +80,11 @@ Item {
         return isoDate(date)
     }
 
+    function closeEditor() {
+        editingForm = false
+        eventsModel.clearError()
+    }
+
     function submitForm() {
         eventsModel.clearError()
         var saved
@@ -99,7 +105,7 @@ Item {
                                             formRepeatUnit)
         }
         if (saved) {
-            editorSheet.close()
+            closeEditor()
         }
     }
 
@@ -120,12 +126,15 @@ Item {
         spacing: Kirigami.Units.largeSpacing
 
         Controls.Label {
-            text: "自定义事件"
+            text: root.editingForm
+                  ? (root.editingId.length === 0 ? "添加事件" : "编辑事件")
+                  : "自定义事件"
             font.bold: true
             Layout.fillWidth: true
         }
 
         Controls.Label {
+            visible: !root.editingForm
             text: eventsModel.usingSystemDefaults
                   ? "当前使用系统预置事件；第一次编辑时会复制到用户文件。"
                   : "事件保存在用户文件中。"
@@ -134,57 +143,87 @@ Item {
             Layout.fillWidth: true
         }
 
-        ListView {
-            id: eventList
+        StackLayout {
+            id: contentStack
 
+            currentIndex: root.editingForm ? 1 : 0
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 220
-            clip: true
-            spacing: 1
-            model: eventsModel
 
-            delegate: Controls.ItemDelegate {
-                width: eventList.width
-                height: Math.max(Kirigami.Units.gridUnit * 3, implicitHeight)
+            ColumnLayout {
+                spacing: Kirigami.Units.smallSpacing
 
-                contentItem: RowLayout {
-                    spacing: Kirigami.Units.smallSpacing
+                ListView {
+                    id: eventList
 
-                    Rectangle {
-                        Layout.alignment: Qt.AlignVCenter
-                        width: Kirigami.Units.gridUnit
-                        height: width
-                        radius: width / 2
-                        color: model.color
-                        border.width: 1
-                        border.color: Kirigami.Theme.disabledTextColor
-                    }
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 220
+                    clip: true
+                    spacing: 1
+                    model: eventsModel
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
+                    delegate: Controls.ItemDelegate {
+                        width: eventList.width
+                        height: Math.max(Kirigami.Units.gridUnit * 3, implicitHeight)
 
-                        Controls.Label {
-                            text: model.name
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
+                        contentItem: RowLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            Rectangle {
+                                Layout.alignment: Qt.AlignVCenter
+                                width: Kirigami.Units.gridUnit
+                                height: width
+                                radius: width / 2
+                                color: model.color
+                                border.width: 1
+                                border.color: Kirigami.Theme.disabledTextColor
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+
+                                Controls.Label {
+                                    text: model.name
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                Controls.Label {
+                                    text: model.date + " · "
+                                          + root.repeatDescription(model.repeatType,
+                                                                   model.repeatInterval,
+                                                                   model.repeatUnit)
+                                    color: Kirigami.Theme.disabledTextColor
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            Controls.ToolButton {
+                                icon.name: "document-edit"
+                                display: Controls.AbstractButton.IconOnly
+                                onClicked: root.openEdit(model.id,
+                                                         model.name,
+                                                         model.date,
+                                                         model.color,
+                                                         model.repeatType,
+                                                         model.repeatInterval,
+                                                         model.repeatUnit)
+                                Controls.ToolTip.visible: hovered
+                                Controls.ToolTip.text: "编辑"
+                            }
+
+                            Controls.ToolButton {
+                                icon.name: "edit-delete"
+                                display: Controls.AbstractButton.IconOnly
+                                onClicked: root.requestDelete(model.id, model.name)
+                                Controls.ToolTip.visible: hovered
+                                Controls.ToolTip.text: "删除"
+                            }
                         }
 
-                        Controls.Label {
-                            text: model.date + " · "
-                                  + root.repeatDescription(model.repeatType,
-                                                           model.repeatInterval,
-                                                           model.repeatUnit)
-                            color: Kirigami.Theme.disabledTextColor
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    Controls.ToolButton {
-                        icon.name: "document-edit"
-                        display: Controls.AbstractButton.IconOnly
                         onClicked: root.openEdit(model.id,
                                                  model.name,
                                                  model.date,
@@ -192,254 +231,221 @@ Item {
                                                  model.repeatType,
                                                  model.repeatInterval,
                                                  model.repeatUnit)
-                        Controls.ToolTip.visible: hovered
-                        Controls.ToolTip.text: "编辑"
-                    }
-
-                    Controls.ToolButton {
-                        icon.name: "edit-delete"
-                        display: Controls.AbstractButton.IconOnly
-                        onClicked: root.requestDelete(model.id, model.name)
-                        Controls.ToolTip.visible: hovered
-                        Controls.ToolTip.text: "删除"
                     }
                 }
 
-                onClicked: root.openEdit(model.id,
-                                         model.name,
-                                         model.date,
-                                         model.color,
-                                         model.repeatType,
-                                         model.repeatInterval,
-                                         model.repeatUnit)
-            }
-        }
+                Controls.Label {
+                    visible: eventList.count === 0
+                    text: "暂无自定义事件"
+                    color: Kirigami.Theme.disabledTextColor
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
+                }
 
-        Controls.Label {
-            visible: eventList.count === 0
-            text: "暂无自定义事件"
-            color: Kirigami.Theme.disabledTextColor
-            horizontalAlignment: Text.AlignHCenter
-            Layout.fillWidth: true
-        }
+                Controls.Label {
+                    visible: eventsModel.errorString.length > 0
+                    text: eventsModel.errorString
+                    color: Kirigami.Theme.negativeTextColor
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
 
-        Controls.Label {
-            visible: eventsModel.errorString.length > 0
-            text: eventsModel.errorString
-            color: Kirigami.Theme.negativeTextColor
-            wrapMode: Text.WordWrap
-            Layout.fillWidth: true
-        }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
+                    Controls.Button {
+                        icon.name: "list-add"
+                        text: "添加事件"
+                        onClicked: root.openAdd()
+                    }
 
-            Controls.Button {
-                icon.name: "list-add"
-                text: "添加事件"
-                onClicked: root.openAdd()
-            }
+                    Controls.Button {
+                        visible: eventsModel.hasUserFile
+                        icon.name: "edit-undo"
+                        text: "恢复系统预置"
+                        onClicked: resetDialog.open()
+                    }
 
-            Controls.Button {
-                visible: eventsModel.hasUserFile
-                icon.name: "edit-undo"
-                text: "恢复系统预置"
-                onClicked: resetDialog.open()
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                }
             }
 
-            Item {
-                Layout.fillWidth: true
-            }
-        }
-    }
+            ColumnLayout {
+                id: editorView
 
-    Kirigami.Dialog {
-        id: editorSheet
-
-        preferredWidth: Math.min(root.width, Kirigami.Units.gridUnit * 30)
-        preferredHeight: Kirigami.Units.gridUnit * 36
-        title: root.editingId.length === 0 ? "添加事件" : "编辑事件"
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: Kirigami.Units.largeSpacing
-            spacing: Kirigami.Units.smallSpacing
-
-            Controls.Label {
-                text: "名称"
-                Layout.fillWidth: true
-            }
-
-            Controls.TextField {
-                id: nameField
-
-                text: root.formName
-                placeholderText: "例如：爸爸生日"
-                onTextEdited: root.formName = text
-                Layout.fillWidth: true
-            }
-
-            Controls.Label {
-                text: "日期"
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
-
-                Controls.TextField {
-                    id: dateField
-
-                    text: root.formDate
-                    placeholderText: "YYYY-MM-DD"
-                    onTextEdited: root.formDate = text
-                    Layout.fillWidth: true
-                }
-
-                Controls.Button {
-                    text: "今天"
-                    onClicked: root.formDate = root.isoDate(new Date())
-                }
-
-                Controls.Button {
-                    text: "明天"
-                    onClicked: root.formDate = root.tomorrow()
-                }
-            }
-
-            Controls.Label {
-                text: "颜色"
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-
-                Rectangle {
-                    Layout.alignment: Qt.AlignVCenter
-                    width: Kirigami.Units.gridUnit
-                    height: width
-                    radius: width / 2
-                    color: root.formColor
-                    border.width: 1
-                    border.color: Kirigami.Theme.disabledTextColor
-                }
-
-                Controls.Label {
-                    text: root.formColor
-                    Layout.fillWidth: true
-                }
-
-                Controls.Button {
-                    icon.name: "color-picker"
-                    text: "选择颜色"
-                    onClicked: colorDialog.open()
-                }
-            }
-
-            Controls.Label {
-                text: "重复"
-                Layout.fillWidth: true
-            }
-
-            Controls.ComboBox {
-                id: repeatTypeField
-
-                model: root.repeatTypeLabels
-                currentIndex: root.repeatTypeIndex(root.formRepeatType)
-                onActivated: function(index) {
-                    root.formRepeatType = root.repeatTypeValues[index]
-                }
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                visible: root.formRepeatType === "custom"
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-
-                Controls.Label {
-                    text: "每"
-                }
-
-                Controls.SpinBox {
-                    id: repeatIntervalField
-
-                    from: 1
-                    to: 999
-                    value: root.formRepeatInterval
-                    editable: true
-                    onValueModified: root.formRepeatInterval = value
-                    Layout.preferredWidth: Kirigami.Units.gridUnit * 5
-                }
-
-                Controls.ComboBox {
-                    id: repeatUnitField
-
-                    model: root.repeatUnitLabels
-                    currentIndex: root.repeatUnitIndex(root.formRepeatUnit)
-                    onActivated: function(index) {
-                        root.formRepeatUnit = root.repeatUnitValues[index]
-                    }
-                    Layout.fillWidth: true
-                }
-
-                Controls.Label {
-                    text: "重复一次"
-                }
-            }
-
-            Controls.Label {
-                visible: root.formRepeatType !== "none"
-                text: root.repeatDescription(root.formRepeatType,
-                                             root.formRepeatInterval,
-                                             root.formRepeatUnit)
-                color: Kirigami.Theme.disabledTextColor
-                Layout.fillWidth: true
-            }
-
-            Controls.Label {
-                visible: root.formRepeatType === "monthly"
-                text: "按事件日期的日号重复；没有该日号的月份会跳过。"
-                color: Kirigami.Theme.disabledTextColor
-                wrapMode: Text.WordWrap
-                Layout.fillWidth: true
-            }
-
-            Controls.Label {
-                visible: eventsModel.errorString.length > 0
-                text: eventsModel.errorString
-                color: Kirigami.Theme.negativeTextColor
-                wrapMode: Text.WordWrap
-                Layout.fillWidth: true
-            }
-
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumHeight: Kirigami.Units.largeSpacing
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.topMargin: Kirigami.Units.smallSpacing
 
                 Item {
+                    id: formArea
+
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: editorForm.implicitHeight
+
+                    Kirigami.FormLayout {
+                        id: editorForm
+
+                        anchors.top: parent.top
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: Math.min(parent.width, Kirigami.Units.gridUnit * 32)
+                        height: implicitHeight
+
+                        Controls.TextField {
+                            id: nameField
+
+                            Kirigami.FormData.label: "名称"
+                            text: root.formName
+                            placeholderText: "例如：爸爸生日"
+                            onTextEdited: root.formName = text
+                            Layout.fillWidth: true
+                        }
+
+                        RowLayout {
+                            Kirigami.FormData.label: "日期"
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            Controls.TextField {
+                                id: dateField
+
+                                text: root.formDate
+                                placeholderText: "YYYY-MM-DD"
+                                onTextEdited: root.formDate = text
+                                Layout.fillWidth: true
+                            }
+
+                            Controls.Button {
+                                text: "今天"
+                                onClicked: root.formDate = root.isoDate(new Date())
+                            }
+
+                            Controls.Button {
+                                text: "明天"
+                                onClicked: root.formDate = root.tomorrow()
+                            }
+                        }
+
+                        RowLayout {
+                            Kirigami.FormData.label: "颜色"
+                            Layout.fillWidth: true
+
+                            Rectangle {
+                                Layout.alignment: Qt.AlignVCenter
+                                width: Kirigami.Units.gridUnit
+                                height: width
+                                radius: width / 2
+                                color: root.formColor
+                                border.width: 1
+                                border.color: Kirigami.Theme.disabledTextColor
+                            }
+
+                            Controls.Label {
+                                text: root.formColor
+                                Layout.fillWidth: true
+                            }
+
+                            Controls.Button {
+                                icon.name: "color-picker"
+                                text: "选择颜色"
+                                onClicked: colorDialog.open()
+                            }
+                        }
+
+                        ColumnLayout {
+                            Kirigami.FormData.label: "重复"
+                            Kirigami.FormData.labelAlignment: Qt.AlignTop
+                            Layout.fillWidth: true
+                            spacing: Kirigami.Units.smallSpacing
+
+                            Controls.ComboBox {
+                                id: repeatTypeField
+
+                                model: root.repeatTypeLabels
+                                currentIndex: root.repeatTypeIndex(root.formRepeatType)
+                                onActivated: function(index) {
+                                    root.formRepeatType = root.repeatTypeValues[index]
+                                }
+                                Layout.fillWidth: true
+                            }
+
+                            RowLayout {
+                                visible: root.formRepeatType === "custom"
+                                Layout.fillWidth: true
+                                spacing: Kirigami.Units.smallSpacing
+
+                                Controls.Label {
+                                    text: "每"
+                                }
+
+                                Controls.SpinBox {
+                                    id: repeatIntervalField
+
+                                    from: 1
+                                    to: 999
+                                    value: root.formRepeatInterval
+                                    editable: true
+                                    onValueModified: root.formRepeatInterval = value
+                                    Layout.preferredWidth: Kirigami.Units.gridUnit * 5
+                                }
+
+                                Controls.ComboBox {
+                                    id: repeatUnitField
+
+                                    model: root.repeatUnitLabels
+                                    currentIndex: root.repeatUnitIndex(root.formRepeatUnit)
+                                    onActivated: function(index) {
+                                        root.formRepeatUnit = root.repeatUnitValues[index]
+                                    }
+                                    Layout.fillWidth: true
+                                }
+
+                                Controls.Label {
+                                    text: "重复一次"
+                                }
+                            }
+
+                            Controls.Label {
+                                visible: root.formRepeatType === "monthly"
+                                text: "按事件日期的日号重复；没有该日号的月份会跳过。"
+                                color: Kirigami.Theme.disabledTextColor
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+                }
+
+                Controls.Label {
+                    visible: eventsModel.errorString.length > 0
+                    text: eventsModel.errorString
+                    color: Kirigami.Theme.negativeTextColor
+                    wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
 
-                Controls.Button {
-                    text: "取消"
-                    onClicked: editorSheet.close()
-                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.topMargin: Kirigami.Units.smallSpacing
 
-                Controls.Button {
-                    icon.name: "document-save"
-                    text: root.editingId.length === 0 ? "添加" : "保存"
-                    enabled: nameField.text.trim().length > 0 && dateField.text.trim().length > 0
-                    onClicked: root.submitForm()
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Controls.Button {
+                        icon.name: "dialog-cancel"
+                        text: "取消"
+                        onClicked: root.closeEditor()
+                    }
+
+                    Controls.Button {
+                        icon.name: "document-save"
+                        text: root.editingId.length === 0 ? "添加" : "保存"
+                        enabled: nameField.text.trim().length > 0 && dateField.text.trim().length > 0
+                        onClicked: root.submitForm()
+                    }
                 }
             }
         }
