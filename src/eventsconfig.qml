@@ -258,11 +258,12 @@ Item {
         id: editorSheet
 
         preferredWidth: Math.min(root.width, Kirigami.Units.gridUnit * 30)
-        preferredHeight: Kirigami.Units.gridUnit * 32
+        preferredHeight: Kirigami.Units.gridUnit * 36
         title: root.editingId.length === 0 ? "添加事件" : "编辑事件"
 
         ColumnLayout {
-            width: editorSheet.width - Kirigami.Units.largeSpacing * 2
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.largeSpacing
             spacing: Kirigami.Units.smallSpacing
 
             Controls.Label {
@@ -413,6 +414,12 @@ Item {
                 color: Kirigami.Theme.negativeTextColor
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumHeight: Kirigami.Units.largeSpacing
             }
 
             RowLayout {
